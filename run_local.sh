@@ -9,7 +9,7 @@ fi
 
 # Playbooks in der richtigen Reihenfolge ausführen
 ansible-playbook -i ansible/inventory/local ansible/playbooks/docker.yml
-ansible-playbook -i ansible/inventory/local ansible/playbooks/ollama.yml
+ansible-playbook -i ansible/inventory/local ansible/playbooks/services/ollama.yml
 ansible-playbook -i ansible/inventory/local ansible/playbooks/services/openwebui.yml
 
 echo "Installation abgeschlossen!"
