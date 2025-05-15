@@ -12,7 +12,7 @@ services:
       # Uncomment and modify these environment variables as needed
       # - WEBUI_AUTH=False      # Set to False to enable single-user mode (no login)
       - OLLAMA_BASE_URL={{ ollama_api_base_url }}  # Point to Ollama service
-
+      - ENABLE_LOGIN_FORM=false  # Set default user role
   # Uncomment this section if you want to run Ollama in the same compose file
   # ollama:
   #   image: ollama/ollama:latest
