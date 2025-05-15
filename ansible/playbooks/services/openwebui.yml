@@ -1,3 +1,4 @@
+---
 # Playbook zur Installation und Konfiguration von OpenWebUI mit Docker Compose
 # Abhängig vom docker.yml Playbook
 
@@ -8,10 +9,10 @@
   vars:
     openwebui_dir: "/opt/openwebui"
     openwebui_port: 3000
-    ollama_api_base_url: "http://172.18.0.1:11434" # Standard-Ollama-URL, kann überschrieben werden (docker out)
+    ollama_api_base_url: "http://172.18.0.1:11434" # Standard-Ollama-URL, ggf. anpassen
 
   tasks:
-    # Voraussetzung überprüfen - Docker sollte installiert sein
+    # Voraussetzung überprüfen – Docker sollte installiert sein
     - name: Überprüfen, ob Docker installiert ist
       command: docker --version
       register: docker_check
@@ -20,12 +21,12 @@
       ignore_errors: true
 
     # Docker installieren, falls nicht verfügbar
-    - name: Docker-CLI und Docker Compose installieren (falls in Container)
+    - name: Docker-CLI und Docker Compose installieren (falls nicht vorhanden)
       block:
         - name: APT-Update durchführen
           apt:
             update_cache: yes
-            
+
         - name: Docker-CLI und Docker Compose installieren
           apt:
             name:
@@ -34,13 +35,12 @@
             state: present
       when: docker_check is failed
 
-    # Voraussetzung überprüfen - Ollama sollte installiert sein
+    # Voraussetzung überprüfen – Ollama sollte installiert sein
     - name: Überprüfen, ob Ollama installiert ist
       command: ollama -v
       register: ollama_check
       failed_when: ollama_check.rc != 0
       changed_when: false
-      ignore_errors: false
 
     # Verzeichnisstruktur erstellen
     - name: Verzeichnis für OpenWebUI erstellen
@@ -56,7 +56,7 @@
         dest: "{{ openwebui_dir }}/docker-compose.yml"
         mode: '0644'
       register: compose_file_result
-      
+
     - name: Docker Compose Konfiguration anzeigen
       debug:
         msg: "Docker Compose wird mit folgender Konfiguration erstellt: Port {{ openwebui_port }}, Ollama API URL: {{ ollama_api_base_url }}"
@@ -75,25 +75,26 @@
       stat:
         path: /.dockerenv
       register: dockerenv
-      
+
     # Docker Socket im Container prüfen
     - name: Docker Socket Zugriff prüfen
       stat:
         path: /var/run/docker.sock
       register: docker_sock
-      
-    # Docker Compose ausführen (in normaler Umgebung oder im Container mit eigenem Docker)
+
+    # Docker Compose ausführen, nur wenn Umgebung es erlaubt
     - name: Docker Compose für OpenWebUI starten
       shell: "cd {{ openwebui_dir }} && docker compose up -d"
       register: docker_compose_output
       when: not dockerenv.stat.exists or (dockerenv.stat.exists and docker_sock.stat.exists and docker_sock.stat.issock)
 
-    # Nur Meldung ausgeben (wenn in Test-Container ohne Docker-Socket)
+    # Meldung bei Docker-in-Docker ohne Socket
     - name: Hinweis bei Docker-in-Docker-Szenario
       debug:
         msg: "Wir befinden uns in einer Docker-Container-Umgebung. Docker Compose wird nur simuliert für Testzwecke."
       when: dockerenv.stat.exists and (not docker_sock.stat.exists or not docker_sock.stat.issock)
 
+    # Meldung, dass docker-compose.yml erzeugt wurde (Test-Hinweis)
     - name: Docker-Compose-Datei wurde erstellt (Test-Hinweis)
       debug:
         msg: "Docker-Compose-Datei wurde erfolgreich erstellt unter {{ openwebui_dir }}/docker-compose.yml"
@@ -104,20 +105,21 @@
         var: docker_compose_output.stdout_lines
       when: docker_compose_output is defined and docker_compose_output.stdout_lines is defined
 
-    # Container-Status prüfen (wenn Docker verfügbar ist)
+    # Container-Status prüfen (nur wenn Docker verfügbar ist)
     - name: OpenWebUI-Container-Status überprüfen
-      shell: "docker ps --filter 'name=open-webui' --format '{{.Status}}'"
+      shell: >
+        docker ps --filter 'name=open-webui' --format '{% raw %}{{.Status}}{% endraw %}'
       register: container_status
       ignore_errors: yes
       when: not dockerenv.stat.exists or (dockerenv.stat.exists and docker_sock.stat.exists and docker_sock.stat.issock)
-      
+
     # Container-Port prüfen
     - name: OpenWebUI-Container-Port auslesen
-      shell: "docker port open-webui | grep '8080/tcp' | awk -F':' '{print $NF}'"
+      shell: "docker port open-webui | grep '8080/tcp' | head -1 | awk -F':' '{print $NF}' | tr -d '[:space:]'"
       register: container_port
       ignore_errors: yes
       when: not dockerenv.stat.exists or (dockerenv.stat.exists and docker_sock.stat.exists and docker_sock.stat.issock)
-      
+
     # Debug-Ausgabe für Docker-Status
     - name: Docker-Status anzeigen
       debug:
@@ -125,12 +127,12 @@
           - "Docker-Container-Status gefunden: {{ container_status.stdout | default('Nicht verfügbar') }}"
           - "Docker-Container-Port gefunden: {{ container_port.stdout | default('Nicht verfügbar') }}"
       when: not dockerenv.stat.exists or (dockerenv.stat.exists and docker_sock.stat.exists and docker_sock.stat.issock)
-    
-    # Verfügbarkeit auf dem tatsächlichen Port prüfen
+
+    # Verfügbarkeit auf dem tatsächlichen Port prüfen (String → int!)
     - name: Verfügbarkeit prüfen
       wait_for:
         host: localhost
-        port: "{{ container_port.stdout | default(openwebui_port) }}"
+        port: "{{ (container_port.stdout.split() | first | default(openwebui_port)) | int }}"
         state: started
         timeout: 60
       register: service_check
@@ -139,15 +141,15 @@
 
     - name: Status anzeigen (normale Umgebung)
       debug:
-        msg: "OpenWebUI wurde erfolgreich gestartet und ist auf Port {{ container_port.stdout | default(openwebui_port) }} erreichbar. Container-Status: {{ container_status.stdout | default('Unbekannt') }}"
+        msg: "OpenWebUI wurde erfolgreich gestartet und ist auf Port {{ (container_port.stdout.split() | first | default(openwebui_port)) }} erreichbar. Container-Status: {{ container_status.stdout | default('Unbekannt') }}"
       when: service_check is defined and service_check.failed is not defined and container_status is defined
 
     - name: Status anzeigen (Test-Umgebung ohne Docker-Socket)
       debug:
         msg: "Test erfolgreich: OpenWebUI-Konfiguration wurde erfolgreich simuliert"
       when: dockerenv.stat.exists and (docker_sock.stat.exists is not defined or not docker_sock.stat.exists or not docker_sock.stat.issock)
-      
+
     - name: Status anzeigen (Test-Umgebung mit Docker-Socket)
       debug:
-        msg: "Docker-in-Docker: OpenWebUI wurde in Container-Umgebung mit Docker-Socket gestartet und ist auf Port {{ container_port.stdout | default(openwebui_port) }} erreichbar. Container-Status: {{ container_status.stdout | default('Unbekannt') }}"
+        msg: "Docker-in-Docker: OpenWebUI wurde in Container-Umgebung mit Docker-Socket gestartet und ist auf Port {{ (container_port.stdout.split() | first | default(openwebui_port)) }} erreichbar. Container-Status: {{ container_status.stdout | default('Unbekannt') }}"
       when: dockerenv.stat.exists and docker_sock.stat.exists and docker_sock.stat.issock and container_status is defined
