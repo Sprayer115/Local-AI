@@ -8,7 +8,7 @@
   vars:
     openwebui_dir: "/opt/openwebui"
     openwebui_port: 3000
-    ollama_api_base_url: "http://localhost:11434" # Standard-Ollama-URL, kann überschrieben werden
+    ollama_api_base_url: "http://172.18.0.1:11434" # Standard-Ollama-URL, kann überschrieben werden (docker out)
 
   tasks:
     # Voraussetzung überprüfen - Docker sollte installiert sein
