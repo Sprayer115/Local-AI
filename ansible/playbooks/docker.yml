@@ -1,0 +1,67 @@
+---
+# Playbook zur Installation und Konfiguration von Docker
+
+- name: Docker Installation und Konfiguration
+  hosts: llm_servers
+  become: true
+  
+  tasks:
+    - name: APT-Paketliste aktualisieren
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Erforderliche Pakete für Docker installieren
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - software-properties-common
+        state: present
+
+    - name: Docker GPG-Schlüssel hinzufügen
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Docker-Repository hinzufügen
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Docker Engine installieren
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    - name: Den Docker-Dienst aktivieren und starten
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Sicherstellen, dass die Docker-Gruppe existiert
+      group:
+        name: docker
+        state: present
+
+    - name: Benutzer zur Docker-Gruppe hinzufügen (wenn definiert)
+      user:
+        name: "{{ docker_user | default(ansible_user_id) }}"
+        groups: docker
+        append: yes
+      when: docker_user is defined or ansible_user_id is defined
+
+    - name: Docker Compose installieren
+      get_url:
+        url: "https://github.com/docker/compose/releases/latest/download/docker-compose-Linux-x86_64"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'

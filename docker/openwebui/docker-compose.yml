@@ -1,0 +1,38 @@
+version: '3.8'
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    ports:
+      - ${OPEN_WEBUI_PORT-3000}:8080
+    volumes:
+      - open-webui-data:/app/backend/data
+    environment:
+      # Uncomment and modify these environment variables as needed
+      # - WEBUI_AUTH=False      # Set to False to enable single-user mode (no login)
+      - OLLAMA_BASE_URL=${OLLAMA_API_BASE_URL - http://ollama:11434}  # Point to Ollama service
+
+  # Uncomment this section if you want to run Ollama in the same compose file
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama
+  #   restart: unless-stopped
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama-data:/root/.ollama
+  #   # Add GPU support if needed
+  #   # deploy:
+  #   #   resources:
+  #   #     reservations:
+  #   #       devices:
+  #   #         - driver: nvidia
+  #   #           count: all
+  #   #           capabilities: [gpu]
+
+volumes:
+  open-webui: {}
+    # Persistent volume for Open WebUI data
+  # ollama-data:
+    # Persistent volume for Ollama models and data

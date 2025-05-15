@@ -1,0 +1,6 @@
+---
+# Playbook zur Bereitstellung des OpenWebUI-Containers
+
+- name: OpenWebUI Container Bereitstellung
+  hosts: llm_servers
+  become: true

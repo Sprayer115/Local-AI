@@ -1,0 +1,28 @@
+---
+# filepath: ansible/playbooks/test-playbook.yml
+# Ein einfaches Testplaybook zum Überprüfen, ob die Ansible-Verbindung funktioniert
+
+- name: Ansible Connection Test
+  hosts: all
+  become: yes
+  
+  tasks:
+    - name: Systeminformationen sammeln
+      setup:
+      register: system_info
+      
+    - name: System-Informationen anzeigen
+      debug:
+        msg: "Verbunden mit {{ ansible_hostname }} ({{ ansible_distribution }} {{ ansible_distribution_version }})"
+    
+    - name: Ping-Test
+      ping:
+      
+    - name: Freien Speicherplatz prüfen
+      shell: df -h / | grep -v Filesystem
+      register: disk_space
+      changed_when: false
+      
+    - name: Speicherplatz anzeigen
+      debug:
+        msg: "Festplattennutzung: {{ disk_space.stdout }}"
