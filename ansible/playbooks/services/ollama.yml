@@ -1,0 +1,195 @@
+---
+# Playbook zur Installation und Konfiguration von Ollama als systemd Service
+
+- name: Ollama Installation und Konfiguration
+  hosts: llm_servers
+  become: true
+
+  vars:
+    ollama_data_dir: "/var/lib/ollama"
+    ollama_port: 11434
+    ollama_bin_path: "/usr/local/bin/ollama"
+    ollama_user: "ollama"
+    ollama_group: "ollama"
+
+  tasks:
+    - name: Notwendige Pakete installieren
+      apt:
+        name: 
+          - curl
+          - ca-certificates
+          - git
+        state: present
+        update_cache: yes
+
+    - name: Überprüfen, ob Ollama-Benutzer existiert
+      getent:
+        database: passwd
+        key: "{{ ollama_user }}"
+      register: ollama_user_exists
+      ignore_errors: true
+
+    - name: Ollama-Benutzer und -Gruppe erstellen
+      block:
+        - name: Ollama-Gruppe erstellen
+          group:
+            name: "{{ ollama_group }}"
+            state: present
+
+        - name: Ollama-Benutzer erstellen
+          user:
+            name: "{{ ollama_user }}"
+            group: "{{ ollama_group }}"
+            create_home: no
+            shell: /usr/sbin/nologin
+            system: yes
+            state: present
+      when: ollama_user_exists.failed or ollama_user_exists is failed
+
+    - name: Sicherstellen, dass das Ollama-Datenverzeichnis existiert
+      file:
+        path: "{{ ollama_data_dir }}"
+        state: directory
+        owner: "{{ ollama_user }}"
+        group: "{{ ollama_group }}"
+        mode: '0755'
+
+    - name: Überprüfen, ob Ollama bereits installiert ist
+      stat:
+        path: "{{ ollama_bin_path }}"
+      register: ollama_bin
+
+    - name: Ollama-Version überprüfen (falls bereits installiert)
+      command: "{{ ollama_bin_path }} --version"
+      register: ollama_current_version
+      changed_when: false
+      ignore_errors: true
+      when: ollama_bin.stat.exists
+
+    - name: Ollama-Installer herunterladen und ausführen
+      shell: curl -fsSL https://ollama.com/install.sh | sh
+      args:
+        creates: "{{ ollama_bin_path }}"
+      
+    # In Docker-Containern verwenden wir keinen systemd-Service, sondern starten Ollama direkt
+    - name: Prüfen, ob in Docker-Umgebung ausgeführt wird
+      stat:
+        path: /.dockerenv
+      register: dockerenv
+      
+    - name: Setze Docker-Flag, wenn Container erkannt wird
+      set_fact:
+        is_docker: "{{ dockerenv.stat.exists or ansible_virtualization_type == 'docker' }}"
+        
+    - name: Erstelle Ollama-Start-Script für Docker-Umgebung
+      copy:
+        dest: /usr/local/bin/start-ollama.sh
+        content: |
+          #!/bin/bash
+          export OLLAMA_HOST="0.0.0.0"
+          export OLLAMA_MODELS_PATH="{{ ollama_data_dir }}/models"
+          
+          # Starte Ollama im Hintergrund
+          nohup {{ ollama_bin_path }} serve > /var/log/ollama.log 2>&1 &
+          
+          echo $! > /var/run/ollama.pid
+          echo "Ollama gestartet mit PID $(cat /var/run/ollama.pid)"
+        owner: root
+        group: root
+        mode: '0755'
+      when: is_docker | default(false)
+      
+    - name: Erstelle stop-ollama Script
+      copy:
+        dest: /usr/local/bin/stop-ollama.sh
+        content: |
+          #!/bin/bash
+          if [ -f /var/run/ollama.pid ]; then
+            kill $(cat /var/run/ollama.pid)
+            rm /var/run/ollama.pid
+            echo "Ollama gestoppt"
+          else
+            echo "Ollama-PID-Datei nicht gefunden"
+          fi
+        owner: root
+        group: root
+        mode: '0755'
+      when: is_docker | default(false)
+      
+    # Erstelle systemd-Service für nicht-Docker-Umgebungen
+    - name: Erstelle Ollama systemd service file
+      copy:
+        dest: /etc/systemd/system/ollama.service
+        content: |
+          [Unit]
+          Description=Ollama Service
+          After=network.target
+          
+          [Service]
+          ExecStart={{ ollama_bin_path }} serve
+          Restart=always
+          RestartSec=3
+          User={{ ollama_user }}
+          Group={{ ollama_group }}
+          Environment="OLLAMA_HOST=0.0.0.0"
+          Environment="OLLAMA_MODELS_PATH={{ ollama_data_dir }}/models"
+          
+          [Install]
+          WantedBy=multi-user.target
+        owner: root
+        group: root
+        mode: '0644'
+      register: ollama_service_file
+      when: not is_docker | default(false)
+      
+    - name: Reload systemd wenn Service-Datei geändert wurde
+      systemd:
+        daemon_reload: yes
+      when: ollama_service_file.changed | default(false) and not is_docker | default(false)
+
+    - name: Ollama-Service aktivieren und starten (systemd)
+      systemd:
+        name: ollama
+        state: started
+        enabled: yes
+      when: not is_docker | default(false)
+      
+    # Start Ollama direkt in Docker-Umgebungen
+    - name: Starte Ollama in Docker-Umgebung
+      command: /usr/local/bin/start-ollama.sh
+      when: is_docker | default(false)
+
+    - name: Warten bis Ollama API verfügbar ist
+      uri:
+        url: "http://localhost:{{ ollama_port }}"
+        status_code: 200
+        timeout: 5
+      register: result
+      until: result.status == 200
+      retries: 12
+      delay: 5
+      ignore_errors: true
+
+    # Status-Überprüfung für beide Umgebungen
+    - name: Status des Ollama-Dienstes überprüfen (systemd)
+      systemd:
+        name: ollama
+      register: ollama_systemd_status
+      when: not is_docker | default(false)
+      ignore_errors: true
+      
+    - name: Status von Ollama in Docker-Umgebung überprüfen
+      shell: ps aux | grep -v grep | grep -q ollama && echo running || echo stopped
+      register: ollama_process_status
+      changed_when: false
+      when: is_docker | default(false)
+      
+    - name: Ollama-Status anzeigen (systemd)
+      debug:
+        msg: "Ollama-Service-Status: {{ ollama_systemd_status.status }}"
+      when: not is_docker | default(false) and ollama_systemd_status is defined
+      
+    - name: Ollama-Status anzeigen (Docker)
+      debug:
+        msg: "Ollama-Prozess-Status: {{ ollama_process_status.stdout }}"
+      when: is_docker | default(false) and ollama_process_status is defined

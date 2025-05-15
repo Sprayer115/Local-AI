@@ -1,0 +1,9 @@
+```jinja-config
+<VirtualHost *:{{ apache_port }}>
+        ServerAdmin webmaster@localhost
+        DocumentRoot {{ apache_document_root }}
+
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+```

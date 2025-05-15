@@ -5,13 +5,13 @@ services:
     container_name: open-webui
     restart: unless-stopped
     ports:
-      - ${OPEN_WEBUI_PORT-3000}:8080
+      - {{ openwebui_port }}:8080
     volumes:
-      - open-webui-data:/app/backend/data
+      - open-webui:/app/backend/data
     environment:
       # Uncomment and modify these environment variables as needed
       # - WEBUI_AUTH=False      # Set to False to enable single-user mode (no login)
-      - OLLAMA_BASE_URL=${OLLAMA_API_BASE_URL - http://ollama:11434}  # Point to Ollama service
+      - OLLAMA_BASE_URL={{ ollama_api_base_url }}  # Point to Ollama service
 
   # Uncomment this section if you want to run Ollama in the same compose file
   # ollama:
