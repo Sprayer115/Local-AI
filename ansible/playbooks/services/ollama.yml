@@ -6,7 +6,6 @@
   become: true
 
   vars:
-    ollama_data_dir: "/var/lib/ollama"
     ollama_port: 11434
     ollama_bin_path: "/usr/local/bin/ollama"
     ollama_user: "ollama"
@@ -48,7 +47,7 @@
 
     - name: Sicherstellen, dass das Ollama-Datenverzeichnis existiert
       file:
-        path: "{{ ollama_data_dir }}"
+        path: "/var/lib/ollama"
         state: directory
         owner: "{{ ollama_user }}"
         group: "{{ ollama_group }}"
@@ -87,7 +86,7 @@
         content: |
           #!/bin/bash
           export OLLAMA_HOST="0.0.0.0"
-          export OLLAMA_MODELS_PATH="{{ ollama_data_dir }}/models"
+          export OLLAMA_MODELS_PATH="/var/lib/ollama/models"
           
           # Starte Ollama im Hintergrund
           nohup {{ ollama_bin_path }} serve > /var/log/ollama.log 2>&1 &
@@ -132,7 +131,6 @@
           User={{ ollama_user }}
           Group={{ ollama_group }}
           Environment="OLLAMA_HOST=0.0.0.0"
-          Environment="OLLAMA_MODELS_PATH={{ ollama_data_dir }}/models"
           
           [Install]
           WantedBy=multi-user.target
