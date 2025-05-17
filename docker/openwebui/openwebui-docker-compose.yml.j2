@@ -22,6 +22,11 @@ services:
   #     - "11434:11434"
   #   volumes:
   #     - ollama-data:/root/.ollama
+  #     - {{ ollama_models_dir | default('/var/lib/ollama/models') }}:/var/lib/ollama/models
+  #   environment:
+  #     - OLLAMA_HOST=0.0.0.0
+  #     - OLLAMA_MODELS=/var/lib/ollama/models
+  #     - OLLAMA_ORIGINS={{ ollama_origins | default('moz-extension://*') }}
   #   # Add GPU support if needed
   #   # deploy:
   #   #   resources:

@@ -12,6 +12,7 @@
     ollama_group: "ollama"
     ollama_home: "/home/ollama"
     ollama_data_dir: "/var/lib/ollama"
+    ollama_origins: "moz-extension://*"
   
   tasks:
     - name: Notwendige Pakete installieren
@@ -108,6 +109,7 @@
           export OLLAMA_HOST="0.0.0.0"
           export OLLAMA_MODELS="{{ ollama_data_dir }}/models"
           export HOME="{{ ollama_home }}"
+          export OLLAMA_ORIGINS="{{ ollama_origins }}"
           # Starte Ollama im Hintergrund
           nohup {{ ollama_bin_path }} serve > /var/log/ollama.log 2>&1 &
           echo $! > /var/run/ollama.pid
@@ -152,6 +154,7 @@
           Environment="OLLAMA_HOST=0.0.0.0"
           Environment="OLLAMA_MODELS={{ ollama_data_dir }}/models"
           Environment="HOME={{ ollama_home }}"
+          Environment="OLLAMA_ORIGINS={{ ollama_origins }}"
           WorkingDirectory={{ ollama_home }}
           
           [Install]
