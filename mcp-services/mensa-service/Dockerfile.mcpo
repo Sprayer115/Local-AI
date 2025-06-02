@@ -1,0 +1,35 @@
+FROM ghcr.io/open-webui/mcpo:main
+
+# Install Python and pip
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    curl \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt /tmp/
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Set working directory
+WORKDIR /app
+
+# Copy application files
+COPY src/ ./src/
+COPY run_server.py .
+
+# Set environment
+ENV PYTHONPATH=/app/src
+ENV PYTHONUNBUFFERED=1
+ENV MCP_PORT=8008
+ENV DOCKER_CONTAINER=true
+
+# Expose port for debugging
+EXPOSE 8008
+
