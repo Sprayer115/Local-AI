@@ -148,11 +148,6 @@ async def list_tools() -> List[Tool]:
                         "type": "boolean",
                         "description": "Verwende echte API",
                         "default": False
-                    },
-                    "api_key": {
-                        "type": "string",
-                        "description": "OpenWeatherMap API Key (optional)",
-                        "default": None
                     }
                 },
                 "required": ["city"]
@@ -179,11 +174,6 @@ async def list_tools() -> List[Tool]:
                         "type": "boolean",
                         "description": "Verwende echte API",
                         "default": True
-                    },
-                    "api_key": {
-                        "type": "string",
-                        "description": "OpenWeatherMap API Key (optional)",
-                        "default": None
                     }
                 },
                 "required": ["city"]
@@ -207,12 +197,8 @@ async def list_tools() -> List[Tool]:
                         "type": "boolean",
                         "description": "Verwende echte API (benötigt API Key)",
                         "default": False
-                    },
-                    "api_key": {
-                        "type": "string",
-                        "description": "OpenWeatherMap API Key (optional)",
-                        "default": None
                     }
+
                 },
                 "required": ["city1", "city2"]
             }
@@ -426,8 +412,17 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
     
     elif name == "get_hourly_forecast":
         city = arguments.get("city", "").lower()
-        hours = arguments.get("hours", 24)
-        use_real_api = arguments.get("use_real_api", True)  # Standardmäßig aktiviert
+        # Explizite Typkonvertierung für hours
+        hours_raw = arguments.get("hours", 24)
+        hours = int(hours_raw) if isinstance(hours_raw, str) else hours_raw
+        
+        # Explizite Typkonvertierung für use_real_api
+        use_real_api_raw = arguments.get("use_real_api", True)
+        if isinstance(use_real_api_raw, str):
+            use_real_api = use_real_api_raw.lower() in ("true", "1", "yes")
+        else:
+            use_real_api = bool(use_real_api_raw)
+        
         api_key = arguments.get("api_key") or os.getenv("OPENWEATHER_API_KEY")
         
         if not use_real_api:
@@ -490,7 +485,14 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
     elif name == "compare_weather":
         city1 = arguments.get("city1", "").lower()
         city2 = arguments.get("city2", "").lower()
-        use_real_api = arguments.get("use_real_api", False)
+        
+        # Explizite Typkonvertierung für use_real_api
+        use_real_api_raw = arguments.get("use_real_api", False)
+        if isinstance(use_real_api_raw, str):
+            use_real_api = use_real_api_raw.lower() in ("true", "1", "yes")
+        else:
+            use_real_api = bool(use_real_api_raw)
+        
         api_key = arguments.get("api_key") or os.getenv("OPENWEATHER_API_KEY")
         
         if use_real_api and api_key:
