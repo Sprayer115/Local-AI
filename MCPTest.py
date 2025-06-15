@@ -1,7 +1,7 @@
 import os
 
 # Set OpenAI API configuration BEFORE importing praisonaiagents
-os.environ["OPENAI_API_BASE"] = "http://localhost:1234/"
+os.environ["OPENAI_API_BASE"] = "http://localhost:1234/v1"
 os.environ["OPENAI_API_KEY"] = "not-needed"
 
 from praisonaiagents import Agent, MCP,  Task, PraisonAIAgents
@@ -34,20 +34,17 @@ weather_agent = Agent(
     verbose=True
 )
 
-# Test the weather agent
-print("🌤️ Starting Weather Agent with Ollama...")
-print("=" * 50)
 
 # Example queries to test
 test_queries = [
-    "Nutze die tatsächliche API.Wie ist aktuell das Wetter in Konstanz?",
+    "Use the actual weather API to get the current weather in New York City.",
 ]
 
 for query in test_queries:
     print(f"\n🔍 Query: {query}")
     print("-" * 30)
     try:
-        response = weather_agent.start(prompt=query, stream=False)
+        response = weather_agent.start(prompt=query)
         print(f"✅ Response: {response}")
     except Exception as e:
         print(f"❌ Error: {e}")

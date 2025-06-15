@@ -361,7 +361,7 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             if use_real_api and not api_key:
                 return [TextContent(
                     type="text",
-                    text="⚠️ 'use_real_api' ist aktiviert, aber kein API-Key wurde angegeben oder in Umgebungsvariablen gefunden."
+                    text=json.dumps({"error": "use_real_api ist aktiviert, aber kein API-Key wurde angegeben oder in Umgebungsvariablen gefunden."})
                 )]
             
             weather_data = MOCK_WEATHER_DATA.get(city)
@@ -369,24 +369,35 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                 available_cities = ", ".join(MOCK_WEATHER_DATA.keys())
                 return [TextContent(
                     type="text",
-                    text=f"❌ Stadt '{city}' nicht in Mock-Daten verfügbar.\n"
-                         f"Verfügbare Städte: {available_cities}\n"
-                         f"Oder nutze use_real_api=true mit API Key."
+                    text=json.dumps({
+                        "error": f"Stadt '{city}' nicht in Mock-Daten verfügbar",
+                        "available_cities": list(MOCK_WEATHER_DATA.keys()),
+                        "hint": "Oder nutze use_real_api=true mit API Key."
+                    })
                 )]
         
         if "error" in weather_data:
-            return [TextContent(type="text", text=f"❌ {weather_data['error']}")]
+            return [TextContent(type="text", text=json.dumps(weather_data))]
         
-        # Formatierte Ausgabe
-        result = f"""🌤️ **Wetter in {weather_data['city']}, {weather_data['country']}**
+        # JSON-Ausgabe mit zusätzlichen Metadaten
+        result = {
+            "city": weather_data['city'],
+            "country": weather_data['country'],
+            "current_weather": {
+                "temperature": weather_data['temperature'],
+                "temperature_unit": "celsius",
+                "humidity": weather_data['humidity'],
+                "humidity_unit": "percent",
+                "description": weather_data['description'],
+                "wind_speed": weather_data['wind_speed'],
+                "wind_speed_unit": "km/h",
+                "pressure": weather_data['pressure'],
+                "pressure_unit": "hPa"
+            },
+            "data_source": "real_api" if use_real_api and api_key else "mock_data"
+        }
 
-🌡️ **Temperatur:** {weather_data['temperature']}°C
-💧 **Luftfeuchtigkeit:** {weather_data['humidity']}%
-📖 **Beschreibung:** {weather_data['description']}
-💨 **Windgeschwindigkeit:** {weather_data['wind_speed']} km/h
-📊 **Luftdruck:** {weather_data['pressure']} hPa"""
-
-        return [TextContent(type="text", text=result)]
+        return [TextContent(type="text", text=json.dumps(result, indent=2))]
     
     elif name == "get_weather_forecast":
         city = arguments.get("city", "").lower()
@@ -397,18 +408,31 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
         if not base_weather:
             return [TextContent(
                 type="text", 
-                text=f"❌ Stadt '{city}' nicht verfügbar für Vorhersage"
+                text=json.dumps({"error": f"Stadt '{city}' nicht verfügbar für Vorhersage"})
             )]
         
-        forecast_text = f"📅 **{days}-Tage Wettervorhersage für {base_weather['city']}**\n\n"
-        
+        forecast_days = []
         for day in range(1, days + 1):
             temp_variation = (-2 + (day * 0.5)) if day % 2 else (1 + (day * 0.3))
             temp = round(base_weather['temperature'] + temp_variation, 1)
             
-            forecast_text += f"**Tag {day}:** {temp}°C, {base_weather['description']}\n"
+            forecast_days.append({
+                "day": day,
+                "temperature": temp,
+                "temperature_unit": "celsius",
+                "description": base_weather['description']
+            })
         
-        return [TextContent(type="text", text=forecast_text)]
+        result = {
+            "city": base_weather['city'],
+            "country": base_weather['country'],
+            "forecast_type": "daily",
+            "forecast_days": days,
+            "forecast": forecast_days,
+            "data_source": "mock_data"
+        }
+        
+        return [TextContent(type="text", text=json.dumps(result, indent=2))]
     
     elif name == "get_hourly_forecast":
         city = arguments.get("city", "").lower()
@@ -431,28 +455,47 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             if not base_weather:
                 return [TextContent(
                     type="text", 
-                    text=f"❌ Stadt '{city}' nicht verfügbar für stündliche Vorhersage"
+                    text=json.dumps({"error": f"Stadt '{city}' nicht verfügbar für stündliche Vorhersage"})
                 )]
             
-            forecast_text = f"⏱️ **Stündliche Vorhersage für {base_weather['city']} (Mock-Daten)**\n\n"
             from datetime import datetime, timedelta
             now = datetime.now()
             
+            hourly_data = []
             for hour in range(hours):
                 time = now + timedelta(hours=hour)
-                time_str = time.strftime("%d.%m.%Y %H:%M")
+                time_str = time.strftime("%Y-%m-%d %H:%M")
                 temp_variation = (-1 + (hour * 0.2)) if hour % 4 == 0 else (0.5 + (hour * 0.1))
                 temp = round(base_weather['temperature'] + temp_variation, 1)
                 
-                forecast_text += f"**{time_str}:** {temp}°C, {base_weather['description']}\n"
+                hourly_data.append({
+                    "datetime": time_str,
+                    "timestamp": int(time.timestamp()),
+                    "temperature": temp,
+                    "temperature_unit": "celsius",
+                    "description": base_weather['description'],
+                    "humidity": base_weather['humidity'],
+                    "humidity_unit": "percent",
+                    "wind_speed": base_weather['wind_speed'],
+                    "wind_speed_unit": "km/h"
+                })
             
-            return [TextContent(type="text", text=forecast_text)]
+            result = {
+                "city": base_weather['city'],
+                "country": base_weather['country'],
+                "forecast_type": "hourly",
+                "forecast_hours": hours,
+                "forecast": hourly_data,
+                "data_source": "mock_data"
+            }
+            
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
         
         # Echte API Daten verwenden
         if not api_key:
             return [TextContent(
                 type="text",
-                text="⚠️ Für die stündliche Vorhersage wird ein API-Key benötigt, aber keiner wurde angegeben oder in Umgebungsvariablen gefunden."
+                text=json.dumps({"error": "Für die stündliche Vorhersage wird ein API-Key benötigt, aber keiner wurde angegeben oder in Umgebungsvariablen gefunden."})
             )]
         
         # Echte stündliche Vorhersagedaten abrufen
@@ -461,26 +504,38 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
         if "error" in forecast_data:
             return [TextContent(
                 type="text", 
-                text=f"❌ {forecast_data['error']}"
+                text=json.dumps(forecast_data)
             )]
         
-        forecast_text = f"⏱️ **Stündliche Vorhersage für {forecast_data['city']}, {forecast_data['country']}**\n\n"
+        # API-Daten in strukturierte Form umwandeln
+        hourly_data = []
+        for item in forecast_data["forecast"]:
+            # Zeitstring in Timestamp umwandeln
+            from datetime import datetime
+            dt_obj = datetime.strptime(item['time'], "%d.%m.%Y %H:%M")
+            
+            hourly_data.append({
+                "datetime": dt_obj.strftime("%Y-%m-%d %H:%M"),
+                "timestamp": int(dt_obj.timestamp()),
+                "temperature": item['temperature'],
+                "temperature_unit": "celsius",
+                "description": item['description'],
+                "humidity": item['humidity'],
+                "humidity_unit": "percent",
+                "wind_speed": item['wind_speed'],
+                "wind_speed_unit": "km/h"
+            })
         
-        # Die erste Vorhersage detailliert anzeigen
-        if forecast_data["forecast"]:
-            first_forecast = forecast_data["forecast"][0]
-            forecast_text += f"**Erste Vorhersage ({first_forecast['time']}):**\n"
-            forecast_text += f"🌡️ Temperatur: {first_forecast['temperature']}°C\n"
-            forecast_text += f"💧 Luftfeuchtigkeit: {first_forecast['humidity']}%\n"
-            forecast_text += f"📖 Beschreibung: {first_forecast['description']}\n"
-            forecast_text += f"💨 Windgeschwindigkeit: {first_forecast['wind_speed']} km/h\n\n"
+        result = {
+            "city": forecast_data['city'],
+            "country": forecast_data['country'],
+            "forecast_type": "hourly",
+            "forecast_hours": len(hourly_data),
+            "forecast": hourly_data,
+            "data_source": "real_api"
+        }
         
-        # Die weiteren Vorhersagen kompakter anzeigen
-        forecast_text += "**Weitere Vorhersagen:**\n"
-        for item in forecast_data["forecast"][1:]:
-            forecast_text += f"• {item['time']}: {item['temperature']}°C, {item['description']}\n"
-        
-        return [TextContent(type="text", text=forecast_text)]
+        return [TextContent(type="text", text=json.dumps(result, indent=2))]
     
     elif name == "compare_weather":
         city1 = arguments.get("city1", "").lower()
@@ -502,12 +557,12 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             weather2 = await fetch_real_weather(city2, api_key)
             
             if "error" in weather1 or "error" in weather2:
-                error_text = ""
+                error_result = {"errors": []}
                 if "error" in weather1:
-                    error_text += f"❌ Stadt 1 ({city1}): {weather1['error']}\n"
+                    error_result["errors"].append({"city": city1, "error": weather1["error"]})
                 if "error" in weather2:
-                    error_text += f"❌ Stadt 2 ({city2}): {weather2['error']}"
-                return [TextContent(type="text", text=error_text)]
+                    error_result["errors"].append({"city": city2, "error": weather2["error"]})
+                return [TextContent(type="text", text=json.dumps(error_result))]
         else:
             # Mock-Daten verwenden
             if use_real_api and not api_key:
@@ -517,42 +572,67 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             weather2 = MOCK_WEATHER_DATA.get(city2)
             
             if not weather1 or not weather2:
-                available_cities = ", ".join(MOCK_WEATHER_DATA.keys())
-                error_text = f"❌ Eine oder beide Städte nicht in Mock-Daten verfügbar.\nVerfügbare Städte: {available_cities}"
-                if not api_key:
-                    error_text += "\nOder nutze use_real_api=true mit API Key für weitere Städte."
-                return [TextContent(type="text", text=error_text)]
+                return [TextContent(type="text", text=json.dumps({
+                    "error": "Eine oder beide Städte nicht verfügbar",
+                    "available_cities": list(MOCK_WEATHER_DATA.keys()),
+                    "hint": "Oder nutze use_real_api=true mit API Key für weitere Städte." if not api_key else None
+                }))]
         
         # Vergleichsdaten berechnen
-        temp_diff = abs(weather1['temperature'] - weather2['temperature'])
+        temp_diff = round(abs(weather1['temperature'] - weather2['temperature']), 1)
         hum_diff = abs(weather1['humidity'] - weather2['humidity'])
         warmer_city = weather1['city'] if weather1['temperature'] > weather2['temperature'] else weather2['city']
+        more_humid_city = weather1['city'] if weather1['humidity'] > weather2['humidity'] else weather2['city']
         
-        comparison = f"""⚖️ **Wettervergleich**
+        result = {
+            "comparison_type": "weather",
+            "cities": [
+                {
+                    "city": weather1['city'],
+                    "country": weather1['country'],
+                    "weather": {
+                        "temperature": weather1['temperature'],
+                        "temperature_unit": "celsius",
+                        "humidity": weather1['humidity'],
+                        "humidity_unit": "percent",
+                        "description": weather1['description'],
+                        "wind_speed": weather1['wind_speed'],
+                        "wind_speed_unit": "km/h",
+                        "pressure": weather1['pressure'],
+                        "pressure_unit": "hPa"
+                    }
+                },
+                {
+                    "city": weather2['city'],
+                    "country": weather2['country'],
+                    "weather": {
+                        "temperature": weather2['temperature'],
+                        "temperature_unit": "celsius",
+                        "humidity": weather2['humidity'],
+                        "humidity_unit": "percent",
+                        "description": weather2['description'],
+                        "wind_speed": weather2['wind_speed'],
+                        "wind_speed_unit": "km/h",
+                        "pressure": weather2['pressure'],
+                        "pressure_unit": "hPa"
+                    }
+                }
+            ],
+            "comparison": {
+                "temperature_difference": temp_diff,
+                "temperature_difference_unit": "celsius",
+                "humidity_difference": hum_diff,
+                "humidity_difference_unit": "percent",
+                "warmer_city": warmer_city,
+                "more_humid_city": more_humid_city
+            },
+            "data_source": "real_api" if use_real_api and api_key else "mock_data"
+        }
 
-🏙️ **{weather1['city']}, {weather1['country']}**
-🌡️ Temperatur: {weather1['temperature']}°C
-💧 Luftfeuchtigkeit: {weather1['humidity']}%
-📖 Beschreibung: {weather1['description']}
-
-🏙️ **{weather2['city']}, {weather2['country']}**
-🌡️ Temperatur: {weather2['temperature']}°C
-💧 Luftfeuchtigkeit: {weather2['humidity']}%
-📖 Beschreibung: {weather2['description']}
-
-📊 **Vergleich:**
-🌡️ Temperaturdifferenz: {temp_diff}°C
-💧 Feuchtigkeitsdifferenz: {hum_diff}%
-🥇 Wärmer: {warmer_city}
-"""
-
-        data_source = "Echtzeit-API" if use_real_api and api_key else "Mock-Daten"
-        comparison += f"ℹ️ *Datenquelle: {data_source}*"
-
-        return [TextContent(type="text", text=comparison)]
+        return [TextContent(type="text", text=json.dumps(result, indent=2))]
     
     else:
-        return [TextContent(type="text", text=f"❌ Unbekanntes Tool: {name}")]
+        return [TextContent(type="text", text=json.dumps({"error": f"Unbekanntes Tool: {name}"}))]
 
 async def main():
     """Hauptfunktion - startet den MCP Server"""
