@@ -1,11 +1,10 @@
 import os
 
 # Set OpenAI API configuration BEFORE importing praisonaiagents
-os.environ["OPENAI_API_BASE"] = "http://localhost:1234/v1"
-os.environ["OPENAI_API_KEY"] = "not-needed"
+os.environ["OPENAI_API_BASE"] = "http://localhost:1234/v1"  # Adjust as needed
+os.environ["OPENAI_API_KEY"] = 'not-needed'
 
 from praisonaiagents import Agent, MCP,  Task, PraisonAIAgents
-
 python_path = os.getenv("PYTHON_PATH", "python")  # or full path like "/usr/bin/python3"
 server_path = os.getenv("WEATHER_SERVER_PATH", "/home/simon/entwicklung/Local-AI/mcp-services/weather-service/src/weather_server.py")  # path to your weather server
 
@@ -27,7 +26,7 @@ weather_agent = Agent(
     Always use the appropriate weather tools when users ask about weather information.
     """,
     
-    llm="ollama/llama3.2",  # Using Ollama with llama3.2
+    llm="ollama/qwen3",  # Using Ollama with llama3.2
     
     # MCP server connection - adjust paths as needed
     tools=MCP(f"{python_path} {server_path}"),
@@ -37,7 +36,8 @@ weather_agent = Agent(
 
 # Example queries to test
 test_queries = [
-    "Use the actual weather API to get the current weather in New York City.",
+    "Use the actual weather API. How is the current weather in New York City.",
+    #"Whats 2+2?"
 ]
 
 for query in test_queries:

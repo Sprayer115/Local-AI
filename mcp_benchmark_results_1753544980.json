@@ -1,0 +1,990 @@
+{
+  "timestamp": 1753544980.9406595,
+  "total_tests": 36,
+  "results": [
+    {
+      "test_case": {
+        "name": "Berlin Weather Query",
+        "prompt": "Wie ist das Wetter in Berlin?",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "berlin"
+        }
+      },
+      "model": "ollama/llama3.2",
+      "provider": "ollama",
+      "round_number": 1,
+      "response_time": 14.58509349822998,
+      "first_tool_call_time": 14.345415115356445,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "Berlin",
+        "use_real_api": true
+      },
+      "tool_execution_time": 0.23955106735229492,
+      "error": null,
+      "tokens_used": 309,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Berlin Weather Query",
+        "prompt": "Wie ist das Wetter in Berlin?",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "berlin"
+        }
+      },
+      "model": "ollama/llama3.2",
+      "provider": "ollama",
+      "round_number": 2,
+      "response_time": 2.1536879539489746,
+      "first_tool_call_time": 1.9990551471710205,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "Berlin",
+        "use_real_api": true
+      },
+      "tool_execution_time": 0.15452909469604492,
+      "error": null,
+      "tokens_used": 309,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Berlin Weather Query",
+        "prompt": "Wie ist das Wetter in Berlin?",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "berlin"
+        }
+      },
+      "model": "ollama/llama3.2",
+      "provider": "ollama",
+      "round_number": 3,
+      "response_time": 2.131727695465088,
+      "first_tool_call_time": 1.9745724201202393,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "Berlin",
+        "use_real_api": true
+      },
+      "tool_execution_time": 0.15704989433288574,
+      "error": null,
+      "tokens_used": 309,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Munich Weather Query",
+        "prompt": "Zeig mir das aktuelle Wetter in München.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "münchen"
+        }
+      },
+      "model": "ollama/llama3.2",
+      "provider": "ollama",
+      "round_number": 1,
+      "response_time": 9.36350703239441,
+      "first_tool_call_time": 9.20275616645813,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "München",
+        "use_real_api": true
+      },
+      "tool_execution_time": 0.1606459617614746,
+      "error": null,
+      "tokens_used": 316,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Munich Weather Query",
+        "prompt": "Zeig mir das aktuelle Wetter in München.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "münchen"
+        }
+      },
+      "model": "ollama/llama3.2",
+      "provider": "ollama",
+      "round_number": 2,
+      "response_time": 2.674591302871704,
+      "first_tool_call_time": 2.524629592895508,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "München",
+        "use_real_api": true
+      },
+      "tool_execution_time": 0.14985871315002441,
+      "error": null,
+      "tokens_used": 316,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Munich Weather Query",
+        "prompt": "Zeig mir das aktuelle Wetter in München.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "münchen"
+        }
+      },
+      "model": "ollama/llama3.2",
+      "provider": "ollama",
+      "round_number": 3,
+      "response_time": 2.589341402053833,
+      "first_tool_call_time": 2.43684458732605,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "München",
+        "use_real_api": true
+      },
+      "tool_execution_time": 0.1523897647857666,
+      "error": null,
+      "tokens_used": 316,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Weather Comparison",
+        "prompt": "Vergleiche das Wetter zwischen Hamburg und Köln.",
+        "expected_tool_call": "compare_weather",
+        "expected_parameters": {
+          "city1": "hamburg",
+          "city2": "köln"
+        }
+      },
+      "model": "ollama/llama3.2",
+      "provider": "ollama",
+      "round_number": 1,
+      "response_time": 9.171720504760742,
+      "first_tool_call_time": 9.169979333877563,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "compare_weather",
+      "actual_parameters": {
+        "city1": "Hamburg",
+        "city2": "Köln"
+      },
+      "tool_execution_time": 0.0016527175903320312,
+      "error": null,
+      "tokens_used": 321,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Weather Comparison",
+        "prompt": "Vergleiche das Wetter zwischen Hamburg und Köln.",
+        "expected_tool_call": "compare_weather",
+        "expected_parameters": {
+          "city1": "hamburg",
+          "city2": "köln"
+        }
+      },
+      "model": "ollama/llama3.2",
+      "provider": "ollama",
+      "round_number": 2,
+      "response_time": 2.536769151687622,
+      "first_tool_call_time": 2.534501314163208,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "compare_weather",
+      "actual_parameters": {
+        "city1": "Hamburg",
+        "city2": "Köln"
+      },
+      "tool_execution_time": 0.0021538734436035156,
+      "error": null,
+      "tokens_used": 321,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Weather Comparison",
+        "prompt": "Vergleiche das Wetter zwischen Hamburg und Köln.",
+        "expected_tool_call": "compare_weather",
+        "expected_parameters": {
+          "city1": "hamburg",
+          "city2": "köln"
+        }
+      },
+      "model": "ollama/llama3.2",
+      "provider": "ollama",
+      "round_number": 3,
+      "response_time": 2.5289807319641113,
+      "first_tool_call_time": 2.5272488594055176,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "compare_weather",
+      "actual_parameters": {
+        "city1": "Hamburg",
+        "city2": "Köln"
+      },
+      "tool_execution_time": 0.0016331672668457031,
+      "error": null,
+      "tokens_used": 321,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "API Weather Request",
+        "prompt": "Gib mir echte Wetterdaten für Frankfurt.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "frankfurt",
+          "use_real_api": true
+        }
+      },
+      "model": "ollama/llama3.2",
+      "provider": "ollama",
+      "round_number": 1,
+      "response_time": 8.740640878677368,
+      "first_tool_call_time": 8.576145648956299,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "Frankfurt",
+        "use_real_api": true
+      },
+      "tool_execution_time": 0.16439437866210938,
+      "error": null,
+      "tokens_used": 314,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "API Weather Request",
+        "prompt": "Gib mir echte Wetterdaten für Frankfurt.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "frankfurt",
+          "use_real_api": true
+        }
+      },
+      "model": "ollama/llama3.2",
+      "provider": "ollama",
+      "round_number": 2,
+      "response_time": 2.218703269958496,
+      "first_tool_call_time": 2.0650088787078857,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "Frankfurt",
+        "use_real_api": true
+      },
+      "tool_execution_time": 0.1535944938659668,
+      "error": null,
+      "tokens_used": 314,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "API Weather Request",
+        "prompt": "Gib mir echte Wetterdaten für Frankfurt.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "frankfurt",
+          "use_real_api": true
+        }
+      },
+      "model": "ollama/llama3.2",
+      "provider": "ollama",
+      "round_number": 3,
+      "response_time": 2.204571008682251,
+      "first_tool_call_time": 2.05497145652771,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "Frankfurt",
+        "use_real_api": true
+      },
+      "tool_execution_time": 0.14948654174804688,
+      "error": null,
+      "tokens_used": 314,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Berlin Weather Query",
+        "prompt": "Wie ist das Wetter in Berlin?",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "berlin"
+        }
+      },
+      "model": "ollama/llama3.1",
+      "provider": "ollama",
+      "round_number": 1,
+      "response_time": 0.024014711380004883,
+      "first_tool_call_time": null,
+      "tool_calls_made": 0,
+      "correct_tool_called": false,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.0,
+      "actual_tool_call": null,
+      "actual_parameters": {},
+      "tool_execution_time": null,
+      "error": "litellm.APIConnectionError: OllamaException - {\"error\":\"model 'llama3.1' not found\"}",
+      "tokens_used": null,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Berlin Weather Query",
+        "prompt": "Wie ist das Wetter in Berlin?",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "berlin"
+        }
+      },
+      "model": "ollama/llama3.1",
+      "provider": "ollama",
+      "round_number": 2,
+      "response_time": 0.016150236129760742,
+      "first_tool_call_time": null,
+      "tool_calls_made": 0,
+      "correct_tool_called": false,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.0,
+      "actual_tool_call": null,
+      "actual_parameters": {},
+      "tool_execution_time": null,
+      "error": "litellm.APIConnectionError: OllamaException - {\"error\":\"model 'llama3.1' not found\"}",
+      "tokens_used": null,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Berlin Weather Query",
+        "prompt": "Wie ist das Wetter in Berlin?",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "berlin"
+        }
+      },
+      "model": "ollama/llama3.1",
+      "provider": "ollama",
+      "round_number": 3,
+      "response_time": 0.015729188919067383,
+      "first_tool_call_time": null,
+      "tool_calls_made": 0,
+      "correct_tool_called": false,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.0,
+      "actual_tool_call": null,
+      "actual_parameters": {},
+      "tool_execution_time": null,
+      "error": "litellm.APIConnectionError: OllamaException - {\"error\":\"model 'llama3.1' not found\"}",
+      "tokens_used": null,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Munich Weather Query",
+        "prompt": "Zeig mir das aktuelle Wetter in München.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "münchen"
+        }
+      },
+      "model": "ollama/llama3.1",
+      "provider": "ollama",
+      "round_number": 1,
+      "response_time": 0.014951944351196289,
+      "first_tool_call_time": null,
+      "tool_calls_made": 0,
+      "correct_tool_called": false,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.0,
+      "actual_tool_call": null,
+      "actual_parameters": {},
+      "tool_execution_time": null,
+      "error": "litellm.APIConnectionError: OllamaException - {\"error\":\"model 'llama3.1' not found\"}",
+      "tokens_used": null,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Munich Weather Query",
+        "prompt": "Zeig mir das aktuelle Wetter in München.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "münchen"
+        }
+      },
+      "model": "ollama/llama3.1",
+      "provider": "ollama",
+      "round_number": 2,
+      "response_time": 0.015858173370361328,
+      "first_tool_call_time": null,
+      "tool_calls_made": 0,
+      "correct_tool_called": false,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.0,
+      "actual_tool_call": null,
+      "actual_parameters": {},
+      "tool_execution_time": null,
+      "error": "litellm.APIConnectionError: OllamaException - {\"error\":\"model 'llama3.1' not found\"}",
+      "tokens_used": null,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Munich Weather Query",
+        "prompt": "Zeig mir das aktuelle Wetter in München.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "münchen"
+        }
+      },
+      "model": "ollama/llama3.1",
+      "provider": "ollama",
+      "round_number": 3,
+      "response_time": 0.016465425491333008,
+      "first_tool_call_time": null,
+      "tool_calls_made": 0,
+      "correct_tool_called": false,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.0,
+      "actual_tool_call": null,
+      "actual_parameters": {},
+      "tool_execution_time": null,
+      "error": "litellm.APIConnectionError: OllamaException - {\"error\":\"model 'llama3.1' not found\"}",
+      "tokens_used": null,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Weather Comparison",
+        "prompt": "Vergleiche das Wetter zwischen Hamburg und Köln.",
+        "expected_tool_call": "compare_weather",
+        "expected_parameters": {
+          "city1": "hamburg",
+          "city2": "köln"
+        }
+      },
+      "model": "ollama/llama3.1",
+      "provider": "ollama",
+      "round_number": 1,
+      "response_time": 0.014791250228881836,
+      "first_tool_call_time": null,
+      "tool_calls_made": 0,
+      "correct_tool_called": false,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.0,
+      "actual_tool_call": null,
+      "actual_parameters": {},
+      "tool_execution_time": null,
+      "error": "litellm.APIConnectionError: OllamaException - {\"error\":\"model 'llama3.1' not found\"}",
+      "tokens_used": null,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Weather Comparison",
+        "prompt": "Vergleiche das Wetter zwischen Hamburg und Köln.",
+        "expected_tool_call": "compare_weather",
+        "expected_parameters": {
+          "city1": "hamburg",
+          "city2": "köln"
+        }
+      },
+      "model": "ollama/llama3.1",
+      "provider": "ollama",
+      "round_number": 2,
+      "response_time": 0.015974044799804688,
+      "first_tool_call_time": null,
+      "tool_calls_made": 0,
+      "correct_tool_called": false,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.0,
+      "actual_tool_call": null,
+      "actual_parameters": {},
+      "tool_execution_time": null,
+      "error": "litellm.APIConnectionError: OllamaException - {\"error\":\"model 'llama3.1' not found\"}",
+      "tokens_used": null,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Weather Comparison",
+        "prompt": "Vergleiche das Wetter zwischen Hamburg und Köln.",
+        "expected_tool_call": "compare_weather",
+        "expected_parameters": {
+          "city1": "hamburg",
+          "city2": "köln"
+        }
+      },
+      "model": "ollama/llama3.1",
+      "provider": "ollama",
+      "round_number": 3,
+      "response_time": 0.015598297119140625,
+      "first_tool_call_time": null,
+      "tool_calls_made": 0,
+      "correct_tool_called": false,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.0,
+      "actual_tool_call": null,
+      "actual_parameters": {},
+      "tool_execution_time": null,
+      "error": "litellm.APIConnectionError: OllamaException - {\"error\":\"model 'llama3.1' not found\"}",
+      "tokens_used": null,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "API Weather Request",
+        "prompt": "Gib mir echte Wetterdaten für Frankfurt.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "frankfurt",
+          "use_real_api": true
+        }
+      },
+      "model": "ollama/llama3.1",
+      "provider": "ollama",
+      "round_number": 1,
+      "response_time": 0.014871835708618164,
+      "first_tool_call_time": null,
+      "tool_calls_made": 0,
+      "correct_tool_called": false,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.0,
+      "actual_tool_call": null,
+      "actual_parameters": {},
+      "tool_execution_time": null,
+      "error": "litellm.APIConnectionError: OllamaException - {\"error\":\"model 'llama3.1' not found\"}",
+      "tokens_used": null,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "API Weather Request",
+        "prompt": "Gib mir echte Wetterdaten für Frankfurt.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "frankfurt",
+          "use_real_api": true
+        }
+      },
+      "model": "ollama/llama3.1",
+      "provider": "ollama",
+      "round_number": 2,
+      "response_time": 0.016748905181884766,
+      "first_tool_call_time": null,
+      "tool_calls_made": 0,
+      "correct_tool_called": false,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.0,
+      "actual_tool_call": null,
+      "actual_parameters": {},
+      "tool_execution_time": null,
+      "error": "litellm.APIConnectionError: OllamaException - {\"error\":\"model 'llama3.1' not found\"}",
+      "tokens_used": null,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "API Weather Request",
+        "prompt": "Gib mir echte Wetterdaten für Frankfurt.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "frankfurt",
+          "use_real_api": true
+        }
+      },
+      "model": "ollama/llama3.1",
+      "provider": "ollama",
+      "round_number": 3,
+      "response_time": 0.016109704971313477,
+      "first_tool_call_time": null,
+      "tool_calls_made": 0,
+      "correct_tool_called": false,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.0,
+      "actual_tool_call": null,
+      "actual_parameters": {},
+      "tool_execution_time": null,
+      "error": "litellm.APIConnectionError: OllamaException - {\"error\":\"model 'llama3.1' not found\"}",
+      "tokens_used": null,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Berlin Weather Query",
+        "prompt": "Wie ist das Wetter in Berlin?",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "berlin"
+        }
+      },
+      "model": "ollama/mistral",
+      "provider": "ollama",
+      "round_number": 1,
+      "response_time": 20.288696765899658,
+      "first_tool_call_time": 20.285998582839966,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "Berlin"
+      },
+      "tool_execution_time": 0.0025644302368164062,
+      "error": null,
+      "tokens_used": 313,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Berlin Weather Query",
+        "prompt": "Wie ist das Wetter in Berlin?",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "berlin"
+        }
+      },
+      "model": "ollama/mistral",
+      "provider": "ollama",
+      "round_number": 2,
+      "response_time": 3.291217803955078,
+      "first_tool_call_time": 3.289494752883911,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "Berlin"
+      },
+      "tool_execution_time": 0.0016298294067382812,
+      "error": null,
+      "tokens_used": 313,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Berlin Weather Query",
+        "prompt": "Wie ist das Wetter in Berlin?",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "berlin"
+        }
+      },
+      "model": "ollama/mistral",
+      "provider": "ollama",
+      "round_number": 3,
+      "response_time": 3.421304702758789,
+      "first_tool_call_time": 3.4193854331970215,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "Berlin"
+      },
+      "tool_execution_time": 0.0017883777618408203,
+      "error": null,
+      "tokens_used": 313,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Munich Weather Query",
+        "prompt": "Zeig mir das aktuelle Wetter in München.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "münchen"
+        }
+      },
+      "model": "ollama/mistral",
+      "provider": "ollama",
+      "round_number": 1,
+      "response_time": 20.11905813217163,
+      "first_tool_call_time": 20.117172718048096,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "München"
+      },
+      "tool_execution_time": 0.0017881393432617188,
+      "error": null,
+      "tokens_used": 317,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Munich Weather Query",
+        "prompt": "Zeig mir das aktuelle Wetter in München.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "münchen"
+        }
+      },
+      "model": "ollama/mistral",
+      "provider": "ollama",
+      "round_number": 2,
+      "response_time": 3.4192421436309814,
+      "first_tool_call_time": 3.4175589084625244,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "München"
+      },
+      "tool_execution_time": 0.0015914440155029297,
+      "error": null,
+      "tokens_used": 317,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Munich Weather Query",
+        "prompt": "Zeig mir das aktuelle Wetter in München.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "münchen"
+        }
+      },
+      "model": "ollama/mistral",
+      "provider": "ollama",
+      "round_number": 3,
+      "response_time": 3.4265568256378174,
+      "first_tool_call_time": 3.4249582290649414,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "München"
+      },
+      "tool_execution_time": 0.001504659652709961,
+      "error": null,
+      "tokens_used": 317,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Weather Comparison",
+        "prompt": "Vergleiche das Wetter zwischen Hamburg und Köln.",
+        "expected_tool_call": "compare_weather",
+        "expected_parameters": {
+          "city1": "hamburg",
+          "city2": "köln"
+        }
+      },
+      "model": "ollama/mistral",
+      "provider": "ollama",
+      "round_number": 1,
+      "response_time": 23.221134901046753,
+      "first_tool_call_time": 22.881311893463135,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "compare_weather",
+      "actual_parameters": {
+        "city1": "Hamburg",
+        "city2": "Köln",
+        "use_real_api": true
+      },
+      "tool_execution_time": 0.3397040367126465,
+      "error": null,
+      "tokens_used": 335,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Weather Comparison",
+        "prompt": "Vergleiche das Wetter zwischen Hamburg und Köln.",
+        "expected_tool_call": "compare_weather",
+        "expected_parameters": {
+          "city1": "hamburg",
+          "city2": "köln"
+        }
+      },
+      "model": "ollama/mistral",
+      "provider": "ollama",
+      "round_number": 2,
+      "response_time": 6.544083595275879,
+      "first_tool_call_time": 6.228021621704102,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "compare_weather",
+      "actual_parameters": {
+        "city1": "Hamburg",
+        "city2": "Köln",
+        "use_real_api": true
+      },
+      "tool_execution_time": 0.31595444679260254,
+      "error": null,
+      "tokens_used": 335,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "Weather Comparison",
+        "prompt": "Vergleiche das Wetter zwischen Hamburg und Köln.",
+        "expected_tool_call": "compare_weather",
+        "expected_parameters": {
+          "city1": "hamburg",
+          "city2": "köln"
+        }
+      },
+      "model": "ollama/mistral",
+      "provider": "ollama",
+      "round_number": 3,
+      "response_time": 6.906968355178833,
+      "first_tool_call_time": 6.597275257110596,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": true,
+      "parameter_accuracy": 1.0,
+      "actual_tool_call": "compare_weather",
+      "actual_parameters": {
+        "city1": "Hamburg",
+        "city2": "Köln",
+        "use_real_api": true
+      },
+      "tool_execution_time": 0.30958008766174316,
+      "error": null,
+      "tokens_used": 335,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "API Weather Request",
+        "prompt": "Gib mir echte Wetterdaten für Frankfurt.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "frankfurt",
+          "use_real_api": true
+        }
+      },
+      "model": "ollama/mistral",
+      "provider": "ollama",
+      "round_number": 1,
+      "response_time": 20.46337366104126,
+      "first_tool_call_time": 20.461570262908936,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.5,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "Frankfurt"
+      },
+      "tool_execution_time": 0.0017175674438476562,
+      "error": null,
+      "tokens_used": 317,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "API Weather Request",
+        "prompt": "Gib mir echte Wetterdaten für Frankfurt.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "frankfurt",
+          "use_real_api": true
+        }
+      },
+      "model": "ollama/mistral",
+      "provider": "ollama",
+      "round_number": 2,
+      "response_time": 3.4294183254241943,
+      "first_tool_call_time": 3.4277820587158203,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.5,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "Frankfurt"
+      },
+      "tool_execution_time": 0.0015425682067871094,
+      "error": null,
+      "tokens_used": 317,
+      "response_content": ""
+    },
+    {
+      "test_case": {
+        "name": "API Weather Request",
+        "prompt": "Gib mir echte Wetterdaten für Frankfurt.",
+        "expected_tool_call": "get_weather",
+        "expected_parameters": {
+          "city": "frankfurt",
+          "use_real_api": true
+        }
+      },
+      "model": "ollama/mistral",
+      "provider": "ollama",
+      "round_number": 3,
+      "response_time": 3.43377685546875,
+      "first_tool_call_time": 3.432142496109009,
+      "tool_calls_made": 1,
+      "correct_tool_called": true,
+      "correct_parameters": false,
+      "parameter_accuracy": 0.5,
+      "actual_tool_call": "get_weather",
+      "actual_parameters": {
+        "city": "Frankfurt"
+      },
+      "tool_execution_time": 0.0015017986297607422,
+      "error": null,
+      "tokens_used": 317,
+      "response_content": ""
+    }
+  ]
+}
