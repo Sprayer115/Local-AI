@@ -322,74 +322,15 @@ def main():
     for tool in tools:
         print(f"   • {tool['function']['name']}: {tool['function']['description']}")
     
-    # 3. Tool Executor (Mock für Demo)
+    # 3. Tool Executor (Minimal Mock für Benchmark)
     def execute_tool(function_name: str, arguments: dict) -> dict:
-        if function_name == "get_weather":
-            city = arguments.get("city", "unknown")
-            return {
-                "city": city.title(),
-                "country": "DE",
-                "current_weather": {
-                    "temperature": 18.5 + hash(city) % 10,  # Variiere Temperatur je nach Stadt
-                    "humidity": 65 + hash(city) % 20,
-                    "description": ["Sonnig", "Bewölkt", "Regnerisch", "Teilweise bewölkt"][hash(city) % 4]
-                },
-                "data_source": "mock_data"
-            }
-        elif function_name == "compare_weather":
-            city1 = arguments.get("city1", "unknown")
-            city2 = arguments.get("city2", "unknown")
-            temp1 = 18.5 + hash(city1) % 10
-            temp2 = 18.5 + hash(city2) % 10
-            return {
-                "comparison_type": "weather",
-                "cities": [
-                    {"city": city1.title(), "temperature": temp1},
-                    {"city": city2.title(), "temperature": temp2}
-                ],
-                "comparison": {
-                    "temperature_difference": abs(temp1 - temp2),
-                    "warmer_city": city1.title() if temp1 > temp2 else city2.title()
-                },
-                "data_source": "mock_data"
-            }
-        elif function_name == "get_hourly_forecast":
-            city = arguments.get("city", "unknown")
-            hours = arguments.get("hours", 24)
-            base_temp = 18.5 + hash(city) % 10
-            return {
-                "city": city.title(),
-                "forecast_type": "hourly",
-                "forecast_hours": hours,
-                "forecast": [
-                    {
-                        "hour": i,
-                        "temperature": base_temp + (i * 0.1) - 2,
-                        "description": ["Klar", "Bewölkt", "Regen"][i % 3]
-                    } for i in range(hours)
-                ],
-                "data_source": "mock_data"
-            }
-        elif function_name == "get_daily_menu":
-            days_ahead = arguments.get("days_ahead", 0)
-            day_names = ["Heute", "Morgen", "Übermorgen", "In 3 Tagen", "In 4 Tagen"]
-            dishes_by_day = [
-                [{"name": "Schnitzel Wiener Art", "price": "4.50€"}, {"name": "Vegane Pasta", "price": "3.80€"}],
-                [{"name": "Fischstäbchen", "price": "4.20€"}, {"name": "Quinoa-Bowl", "price": "4.10€"}],
-                [{"name": "Currywurst", "price": "3.90€"}, {"name": "Gemüseauflauf", "price": "3.60€"}],
-                [{"name": "Rindergulasch", "price": "5.20€"}, {"name": "Tofu-Pfanne", "price": "4.00€"}],
-                [{"name": "Pizza Margherita", "price": "4.40€"}, {"name": "Salat-Teller", "price": "3.20€"}]
-            ]
-            
-            return {
-                "mensa": "HTWG Mensa",
-                "day": day_names[days_ahead] if days_ahead < len(day_names) else f"Tag +{days_ahead}",
-                "days_ahead": days_ahead,
-                "dishes": dishes_by_day[days_ahead % len(dishes_by_day)],
-                "data_source": "mock_data"
-            }
-        
-        return {"error": f"Unbekannte Funktion: {function_name}"}
+        # Minimale Mock-Response nur für Benchmark-Zwecke
+        return {
+            "function": function_name,
+            "arguments": arguments,
+            "status": "success",
+            "mock_response": f"Tool {function_name} würde ausgeführt mit {arguments}"
+        }
     
     # 4. Modelle definieren
     models = [
