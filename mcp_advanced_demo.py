@@ -7,6 +7,7 @@ Zeigt die neue Multi-Model-Evaluierungsfunktionalität aus mcp_benchmark_llm.py
 import json
 import time
 from typing import Dict, Any, List
+from dataclasses import asdict
 
 # Import der neuen Multi-Model-Klassen aus der refaktorierten mcp_benchmark_llm.py
 from mcp_benchmark_llm import (
@@ -39,8 +40,16 @@ def export_multi_model_results(multi_model_results: List[Dict[str, Any]], filena
         test_case = entry.get("test_case", {})
         mmr = entry.get("multi_model_result")
         mmr_dict = mmr.to_dict() if hasattr(mmr, "to_dict") else {}
+        # TestCase robust serialisieren (Objekt -> Dict)
+        if isinstance(test_case, TestCase) or hasattr(test_case, "__dataclass_fields__"):
+            test_case_serialized = asdict(test_case)
+        elif isinstance(test_case, dict):
+            test_case_serialized = test_case
+        else:
+            test_case_serialized = {"name": getattr(test_case, "name", str(test_case))}
+
         data["results"].append({
-            "test_case": test_case,
+            "test_case": test_case_serialized,
             "multi_model_result": mmr_dict
         })
 
@@ -216,7 +225,7 @@ def demonstrate_multi_model_evaluator():
     evaluation_models = [
         {"name": "llama3.2", "provider": "ollama", "base_url": "http://localhost:11434"},
         # Weitere Modelle können hier hinzugefügt werden
-        {"name": "llama3.1", "provider": "ollama", "base_url": "http://localhost:11434"},
+        {"name": "mistral", "provider": "ollama", "base_url": "http://localhost:11434"},
     ]
     
     print(f"Konfigurierte Evaluator-Modelle: {len(evaluation_models)}")
@@ -234,87 +243,241 @@ def demonstrate_multi_model_evaluator():
                 "temperature": 0.0,
                 "timeout": 30
             },
-            show_progress=True
+            show_progress=True,
+            timeout=90
         )
         print("✅ Multi-Model-Evaluator erfolgreich erstellt")
     except Exception as e:
         print(f"❌ Fehler beim Erstellen des Multi-Model-Evaluators: {e}")
         return []
     
-    # 3. Beispiel-TestCases für Multi-Model-Demo
-    demo_test_cases = [
-        {
-            "name": "Berlin Weather Multi-Model",
-            "original_prompt": "Wie ist das Wetter in Berlin?",
-            "model_initial": "Ich rufe das Wetter-Tool für Berlin auf.",
-            "tool_call_json": {"function": {"name": "get_weather", "arguments": '{"city": "berlin"}'}},
-            "tool_response": {"city": "Berlin", "temperature": 22, "condition": "sunny", "humidity": 65},
-            "model_final": "Das Wetter in Berlin ist heute sonnig bei 22°C mit einer Luftfeuchtigkeit von 65%.",
-            "expected_tool_call": "get_weather",
-            "expected_parameters": {"city": "berlin"}
-        },
-        {
-            "name": "Mensa Menu Multi-Model",
-            "original_prompt": "Was gibt es heute in der Mensa?",
-            "model_initial": "Ich rufe das Mensa-Tool auf.",
-            "tool_call_json": {"function": {"name": "get_daily_menu", "arguments": '{"days_ahead": 0}'}},
-            "tool_response": {"date": "heute", "menu": ["Schnitzel mit Pommes", "Vegetarische Pasta"], "prices": [6.50, 5.20]},
-            "model_final": "Heute gibt es in der Mensa Schnitzel mit Pommes für 6,50€ und Vegetarische Pasta für 5,20€.",
-            "expected_tool_call": "get_daily_menu",
-            "expected_parameters": {"days_ahead": 0}
-        },
-        {
-            "name": "Weather Comparison Multi-Model",
-            "original_prompt": "Vergleiche das Wetter zwischen München und Hamburg.",
-            "model_initial": "Ich vergleiche das Wetter zwischen den beiden Städten.",
-            "tool_call_json": {"function": {"name": "compare_weather", "arguments": '{"city1": "münchen", "city2": "hamburg"}'}},
-            "tool_response": {
-                "city1": {"name": "München", "temperature": 25, "condition": "sunny"},
-                "city2": {"name": "Hamburg", "temperature": 18, "condition": "cloudy"},
-                "comparison": "München ist 7°C wärmer als Hamburg"
-            },
-            "model_final": "München ist heute mit 25°C und sonnigem Wetter deutlich wärmer als Hamburg mit 18°C und bewölktem Himmel.",
-            "expected_tool_call": "compare_weather",
-            "expected_parameters": {"city1": "münchen", "city2": "hamburg"}
-        }
+    # 3. TestCases: Nutze die echten TestCases wie in demonstrate_advanced_evaluator_with_standard_testcases
+    test_cases = [
+        # Weather Service Tests - verschiedene deutsche Städte
+        TestCase(
+            name="Munich Weather Alternative",
+            prompt="Zeige mir das aktuelle Wetter in München.",
+            expected_tool_call="get_weather",
+            expected_parameters={"city": "münchen"}
+        ),
+        TestCase(
+            name="Hamburg Weather Casual",
+            prompt="Wie ist es denn heute in Hamburg?",
+            expected_tool_call="get_weather",
+            expected_parameters={"city": "hamburg"}
+        ),
+        TestCase(
+            name="Frankfurt Weather Short",
+            prompt="Frankfurt Wetter?",
+            expected_tool_call="get_weather",
+            expected_parameters={"city": "frankfurt"}
+        ),
+        TestCase(
+            name="Cologne Weather Formal",
+            prompt="Können Sie mir bitte das Wetter für Köln mitteilen?",
+            expected_tool_call="get_weather",
+            expected_parameters={"city": "köln"}
+        ),
+        TestCase(
+            name="Stuttgart Weather Question",
+            prompt="Regnet es gerade in Stuttgart?",
+            expected_tool_call="get_weather",
+            expected_parameters={"city": "stuttgart"}
+        ),
+        # Weather Comparisons - verschiedene Formulierungen
+        TestCase(
+            name="Weather Comparison Standard",
+            prompt="Vergleiche das Wetter zwischen München und Hamburg.",
+            expected_tool_call="compare_weather",
+            expected_parameters={"city1": "münchen", "city2": "hamburg"}
+        ),
+        TestCase(
+            name="Weather Comparison Casual",
+            prompt="Wo ist es wärmer - in Berlin oder Düsseldorf?",
+            expected_tool_call="compare_weather",
+            expected_parameters={"city1": "berlin", "city2": "düsseldorf"}
+        ),
+        TestCase(
+            name="Weather Comparison Direct",
+            prompt="Dresden vs Leipzig Wetter",
+            expected_tool_call="compare_weather",
+            expected_parameters={"city1": "dresden", "city2": "leipzig"}
+        ),
+        # Hourly Forecast Tests - verschiedene Stunden
+        TestCase(
+            name="Hourly Forecast 12h",
+            prompt="Gib mir die Wettervorhersage für die nächsten 12 Stunden in Berlin.",
+            expected_tool_call="get_hourly_forecast",
+            expected_parameters={"city": "berlin", "hours": 12}
+        ),
+        TestCase(
+            name="Hourly Forecast 24h",
+            prompt="Wie wird das Wetter in den nächsten 24 Stunden in Hannover?",
+            expected_tool_call="get_hourly_forecast",
+            expected_parameters={"city": "hannover", "hours": 24}
+        ),
+        TestCase(
+            name="Hourly Forecast 6h",
+            prompt="Stundenvorhersage für Nürnberg, nächste 6 Stunden",
+            expected_tool_call="get_hourly_forecast",
+            expected_parameters={"city": "nürnberg", "hours": 6}
+        ),
+        # Mensa Service Tests - verschiedene Tage und Formulierungen
+        TestCase(
+            name="Today Menu Simple",
+            prompt="Was gibt es heute in der Mensa?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 0}
+        ),
+        TestCase(
+            name="Today Menu Detailed",
+            prompt="Zeig mir das heutige Mensamenü.",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 0}
+        ),
+        TestCase(
+            name="Tomorrow Menu",
+            prompt="Was steht morgen auf dem Mensaplan?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 1}
+        ),
+        TestCase(
+            name="Tomorrow Menu Alternative",
+            prompt="Mensamenü für morgen anzeigen",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 1}
+        ),
+        TestCase(
+            name="Day After Tomorrow Menu",
+            prompt="Was gibt es übermorgen zu essen?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 2}
+        ),
+        TestCase(
+            name="Future Menu 3 Days",
+            prompt="Mensaplan in 3 Tagen?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 3}
+        ),
+        TestCase(
+            name="Future Menu Formal",
+            prompt="Können Sie mir das Menü für übermorgen zeigen?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 2}
+        )
     ]
     
     # 4. Multi-Model-Evaluierung für jeden TestCase
     print(f"\n{'='*80}")
     print("STARTE MULTI-MODEL MCP-EVALUIERUNG")
     print(f"{'='*80}")
-    print(f"TestCases: {len(demo_test_cases)}")
+    print(f"TestCases: {len(test_cases)}")
     print(f"Evaluator-Modelle: {len(evaluation_models)}")
     print(f"{'='*80}")
-    
+
     multi_model_results = []
-    
-    for i, test_case in enumerate(demo_test_cases, 1):
-        print(f"\n--- TestCase {i}/{len(demo_test_cases)}: {test_case['name']} ---")
-        
+
+    # Für jede TestCase: Tool-Call wie im Benchmark durchführen, dann Multi-Model-Evaluierung
+    tools = get_all_tools_from_servers()
+    def execute_tool(function_name: str, arguments: dict) -> dict:
+        # Mock-Response wie in demonstrate_advanced_evaluator_with_standard_testcases
+        if function_name == "get_weather":
+            city = arguments.get("city", "Unknown")
+            return {
+                "city": city,
+                "temperature": 22,
+                "condition": "sunny",
+                "humidity": 65
+            }
+        elif function_name == "get_hourly_forecast":
+            city = arguments.get("city", "Unknown")
+            hours = arguments.get("hours", 24)
+            try:
+                if isinstance(hours, str):
+                    hours = int(hours)
+                hours = int(hours)
+            except (ValueError, TypeError):
+                hours = 24
+            return {
+                "city": city,
+                "forecast": [
+                    {"hour": i, "temp": 22 + i % 3, "condition": "sunny" if i % 2 == 0 else "cloudy"}
+                    for i in range(min(hours, 12))
+                ],
+                "hours_requested": hours
+            }
+        elif function_name == "compare_weather":
+            city1 = arguments.get("city1", "City1")
+            city2 = arguments.get("city2", "City2")
+            return {
+                "city1": {"name": city1, "temperature": 22, "condition": "sunny"},
+                "city2": {"name": city2, "temperature": 18, "condition": "cloudy"},
+                "comparison": f"{city1} ist wärmer als {city2}"
+            }
+        elif function_name == "get_daily_menu":
+            days_ahead = arguments.get("days_ahead", 0)
+            try:
+                if isinstance(days_ahead, str):
+                    days_ahead = int(days_ahead)
+                days_ahead = int(days_ahead)
+            except (ValueError, TypeError):
+                days_ahead = 0
+            return {
+                "date": f"2024-08-{11 + days_ahead}",
+                "menu": [
+                    {"item": "Schnitzel mit Pommes", "price": "8.50€"},
+                    {"item": "Vegetarisches Curry", "price": "7.20€"}
+                ],
+                "days_ahead": days_ahead
+            }
+        elif function_name == "get_weekly_menu":
+            weeks_ahead = arguments.get("weeks_ahead", 0)
+            try:
+                if isinstance(weeks_ahead, str):
+                    weeks_ahead = int(weeks_ahead)
+                weeks_ahead = int(weeks_ahead)
+            except (ValueError, TypeError):
+                weeks_ahead = 0
+            return {
+                "week": f"KW {32 + weeks_ahead}",
+                "menu": {"Mo": "Schnitzel", "Di": "Curry", "Mi": "Pizza"},
+                "weeks_ahead": weeks_ahead
+            }
+        else:
+            return {
+                "function": function_name,
+                "arguments": arguments,
+                "status": "success",
+                "mock_response": f"Tool {function_name} erfolgreich ausgeführt"
+            }
+
+    for i, test_case in enumerate(test_cases, 1):
+        print(f"\n--- TestCase {i}/{len(test_cases)}: {test_case.name} ---")
         try:
-            # Multi-Model-Evaluierung direkt durchführen
-            print(f"   🔄 Multi-Model-Evaluierung mit {len(evaluation_models)} Modellen...")
-            
+            # Tool-Call wie im Benchmark durchführen
+            # Simuliere LLM-Antworten (hier leer oder generisch)
+            model_initial = "Tool wird aufgerufen..."
+            tool_call_json = {"function": {"name": test_case.expected_tool_call, "arguments": test_case.expected_parameters}}
+            tool_response = execute_tool(test_case.expected_tool_call, test_case.expected_parameters)
+            model_final = "Antwort generiert nach Tool-Call."
+
             multi_result = multi_evaluator.evaluate_interaction_multi_model(
-                original_prompt=test_case["original_prompt"],
-                model_initial=test_case["model_initial"],
-                tool_call_json=test_case["tool_call_json"],
-                tool_response=test_case["tool_response"],
-                model_final=test_case["model_final"],
-                expected_tool_call=test_case["expected_tool_call"],
-                expected_parameters=test_case["expected_parameters"]
+                original_prompt=test_case.prompt,
+                model_initial=model_initial,
+                tool_call_json=tool_call_json,
+                tool_response=tool_response,
+                model_final=model_final,
+                expected_tool_call=test_case.expected_tool_call,
+                expected_parameters=test_case.expected_parameters
             )
-            
-            # Ergebnis mit TestCase verknüpfen
+
             test_result = {
                 "test_case": test_case,
                 "multi_model_result": multi_result
             }
             multi_model_results.append(test_result)
-                
         except Exception as e:
-            print(f"   ❌ Fehler bei TestCase {test_case['name']}: {e}")
+            print(f"   ❌ Fehler bei TestCase {test_case.name}: {e}")
     
     # 5. Multi-Model-Ergebnisse analysieren
     print(f"\n{'='*80}")
@@ -371,9 +534,17 @@ def demonstrate_multi_model_evaluator():
         for result in multi_model_results:
             test_case = result["test_case"]
             multi_result = result["multi_model_result"]
-            
-            print(f"\n   📝 {test_case['name']}:")
-            print(f"      Prompt: {test_case['original_prompt']}")
+
+            # Unterstütze sowohl Dataclass-Objekte als auch Dicts
+            tc_name = getattr(test_case, "name", None)
+            if tc_name is None and isinstance(test_case, dict):
+                tc_name = test_case.get("name")
+            tc_prompt = getattr(test_case, "prompt", None)
+            if tc_prompt is None and isinstance(test_case, dict):
+                tc_prompt = test_case.get("original_prompt") or test_case.get("prompt")
+
+            print(f"\n   📝 {tc_name}:")
+            print(f"      Prompt: {tc_prompt}")
             
             successful_evals = [e for e in multi_result.model_evaluations if e.evaluation_error is None]
             if successful_evals:
@@ -402,11 +573,119 @@ def demonstrate_advanced_evaluator_with_standard_testcases():
     test_cases = [
         # Weather Service Tests - verschiedene deutsche Städte
         TestCase(
-            name="Berlin Weather",
-            prompt="Wie ist das Wetter in Berlin?",
+            name="Munich Weather Alternative",
+            prompt="Zeige mir das aktuelle Wetter in München.",
             expected_tool_call="get_weather",
-            expected_parameters={"city": "berlin"}
+            expected_parameters={"city": "münchen"}
         ),
+        TestCase(
+            name="Hamburg Weather Casual",
+            prompt="Wie ist es denn heute in Hamburg?",
+            expected_tool_call="get_weather",
+            expected_parameters={"city": "hamburg"}
+        ),
+        TestCase(
+            name="Frankfurt Weather Short",
+            prompt="Frankfurt Wetter?",
+            expected_tool_call="get_weather",
+            expected_parameters={"city": "frankfurt"}
+        ),
+        TestCase(
+            name="Cologne Weather Formal",
+            prompt="Können Sie mir bitte das Wetter für Köln mitteilen?",
+            expected_tool_call="get_weather",
+            expected_parameters={"city": "köln"}
+        ),
+        TestCase(
+            name="Stuttgart Weather Question",
+            prompt="Regnet es gerade in Stuttgart?",
+            expected_tool_call="get_weather",
+            expected_parameters={"city": "stuttgart"}
+        ),
+        
+        # Weather Comparisons - verschiedene Formulierungen
+        TestCase(
+            name="Weather Comparison Standard",
+            prompt="Vergleiche das Wetter zwischen München und Hamburg.",
+            expected_tool_call="compare_weather",
+            expected_parameters={"city1": "münchen", "city2": "hamburg"}
+        ),
+        TestCase(
+            name="Weather Comparison Casual",
+            prompt="Wo ist es wärmer - in Berlin oder Düsseldorf?",
+            expected_tool_call="compare_weather",
+            expected_parameters={"city1": "berlin", "city2": "düsseldorf"}
+        ),
+        TestCase(
+            name="Weather Comparison Direct",
+            prompt="Dresden vs Leipzig Wetter",
+            expected_tool_call="compare_weather",
+            expected_parameters={"city1": "dresden", "city2": "leipzig"}
+        ),
+        
+        # Hourly Forecast Tests - verschiedene Stunden
+        TestCase(
+            name="Hourly Forecast 12h",
+            prompt="Gib mir die Wettervorhersage für die nächsten 12 Stunden in Berlin.",
+            expected_tool_call="get_hourly_forecast",
+            expected_parameters={"city": "berlin", "hours": 12}
+        ),
+        TestCase(
+            name="Hourly Forecast 24h",
+            prompt="Wie wird das Wetter in den nächsten 24 Stunden in Hannover?",
+            expected_tool_call="get_hourly_forecast",
+            expected_parameters={"city": "hannover", "hours": 24}
+        ),
+        TestCase(
+            name="Hourly Forecast 6h",
+            prompt="Stundenvorhersage für Nürnberg, nächste 6 Stunden",
+            expected_tool_call="get_hourly_forecast",
+            expected_parameters={"city": "nürnberg", "hours": 6}
+        ),
+        
+        # Mensa Service Tests - verschiedene Tage und Formulierungen
+        TestCase(
+            name="Today Menu Simple",
+            prompt="Was gibt es heute in der Mensa?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 0}
+        ),
+        TestCase(
+            name="Today Menu Detailed",
+            prompt="Zeig mir das heutige Mensamenü.",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 0}
+        ),
+        TestCase(
+            name="Tomorrow Menu",
+            prompt="Was steht morgen auf dem Mensaplan?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 1}
+        ),
+        TestCase(
+            name="Tomorrow Menu Alternative",
+            prompt="Mensamenü für morgen anzeigen",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 1}
+        ),
+        TestCase(
+            name="Day After Tomorrow Menu",
+            prompt="Was gibt es übermorgen zu essen?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 2}
+        ),
+        TestCase(
+            name="Future Menu 3 Days",
+            prompt="Mensaplan in 3 Tagen?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 3}
+        ),
+        TestCase(
+            name="Future Menu Formal",
+            prompt="Können Sie mir das Menü für übermorgen zeigen?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 2}
+        )
         
     ]
     
@@ -750,7 +1029,7 @@ from mcp_benchmark_llm import EvaluatorFactory
 
 models = [
     {"name": "llama3.2", "provider": "ollama", "base_url": "http://localhost:11434"},
-    {"name": "llama3.1", "provider": "ollama", "base_url": "http://localhost:11434"}
+    {"name": "mistral", "provider": "ollama", "base_url": "http://localhost:11434"}
 ]
 
 evaluator = EvaluatorFactory.create_multi_model_evaluator(
@@ -769,7 +1048,7 @@ result = evaluator.evaluate_interaction_multi_model(
 
 # result.model_evaluations enthält Array aller Evaluierungen
 # result.model_evaluations[0] = Evaluierung mit llama3.2
-# result.model_evaluations[1] = Evaluierung mit llama3.1
+# result.model_evaluations[1] = Evaluierung mit mistral
     """)
     
     print(f"\nDemonstration erfolgreich abgeschlossen! 🚀")
@@ -815,47 +1094,14 @@ result = BenchmarkResult(
     error=None,                    # Kein Fehler
     tokens_used=182,               # Verwendete Tokens
     
-    # DEEPEVAL-EVALUATOR-ERGEBNISSE:
-    evaluation_result=EvaluationResult(
-        tool_usage_correctness=1.0,         # Tool korrekt verwendet (0.0-1.0)
-        answer_correctness=1.0,             # Finale Antwort korrekt (0.0-1.0)  
-        answer_completeness=1.0,            # Finale Antwort vollständig (0.0-1.0)
-        overall_score=100,                  # Gesamt-Score (0-100)
-        reasoning="Das Tool wurde korrekt aufgerufen und alle relevanten Wetterdaten wurden in der finalen Antwort verwendet.",
-        evaluation_steps_results=[
-            {"step": "Tool-Usage", "score": 1.0, "explanation": "Korrektes Tool mit richtigen Parametern"},
-            {"step": "Data-Integration", "score": 1.0, "explanation": "Alle Tool-Daten korrekt übernommen"},
-            {"step": "Answer-Quality", "score": 1.0, "explanation": "Vollständige und präzise Antwort"}
-        ],
-        evaluation_error=None,              # Fehler bei Evaluierung (None wenn OK)
-        evaluation_time=18.45,              # Zeit für Deepeval-Evaluierung in Sekunden
-        retry_count=0                       # Anzahl Retry-Versuche
-    ),
+    # ...eigene Evaluator-Resultate...
     model_initial="",                      # Erste LLM-Antwort (vor Tool-Execution)
     model_final="Das Wetter in Berlin ist heute sonnig mit 22°C und 65% Luftfeuchtigkeit."
 )
 
-DEEPEVAL-BENCHMARK ZUSAMMENFASSUNG:
-================================================================================
-🔄 Modell: ollama/llama3.2 (ollama) mit Deepeval-Evaluator
-✅ Gesamt: 38/40 erfolgreich
-⏱️  Durchschnittliche Antwortzeit: 42.15s
-🔧 Durchschnittliche Zeit bis Tool-Call: 7.23s
-🎯 Tool-Call-Genauigkeit: 38/38 (100.0%)
-📋 Parameter-Genauigkeit: 36/38 (94.7%)
-🔢 Durchschnittliche Parameter-Korrektheit: 96.2%
-🔤 Durchschnittliche Tokens: 178
-🔍 Durchschnittlicher Deepeval-Score: 94.8/100    # DEEPEVAL-SPEZIFISCH
-⏲️  Durchschnittliche Deepeval-Zeit: 15.67s      # DEEPEVAL-SPEZIFISCH
-⚠️  Deepeval-Fehler: 1/38 (2.6%)                 # DEEPEVAL-SPEZIFISCH
-
-📋 Test-Case Details:
-   Berlin Weather (2 Runden):
-     Tools: 2/2 korrekt (100.0%)
-     Parameter: 100.0% korrekt im Durchschnitt
-     Zeit: 41.50s durchschnittlich
-     Deepeval-Score: 100.0/100 durchschnittlich  # DEEPEVAL-SPEZIFISCH
-================================================================================
+################################################################################
+## Benchmark-Zusammenfassung (angepasst, ohne Deepeval/Labeling)
+################################################################################
     """)
 
 

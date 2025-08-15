@@ -1126,7 +1126,8 @@ class EvaluatorFactory:
     def create_multi_model_evaluator(
         models: List[Dict[str, Any]],
         base_config: Optional[Dict[str, Any]] = None,
-        show_progress: bool = True
+        show_progress: bool = True,
+        timeout: Optional[int] = None
     ) -> MCPMultiModelEvaluator:
         """
         Erstellt Multi-Model-Evaluator
@@ -1140,10 +1141,14 @@ class EvaluatorFactory:
                    ]
             base_config: Basis-Konfiguration für alle Evaluatoren
             show_progress: Ob Progress-Informationen angezeigt werden sollen
+            timeout: Optionaler Timeout (Sekunden) für Ollama/OpenAI-Aufrufe; wird in die Evaluator-Konfiguration gemerged
             
         Returns:
             MCPMultiModelEvaluator-Instanz
         """
+        # Timeout (falls angegeben) in die Basis-Konfiguration übernehmen
+        if timeout is not None:
+            base_config = {**(base_config or {}), "timeout": timeout}
         return MCPMultiModelEvaluator(
             models=models,
             base_evaluator_config=base_config,
@@ -1169,211 +1174,4 @@ Spezifische Anforderungen:"""
     
     return criteria
 
-# Test-Funktionen und Beispiele
-
-def test_advanced_evaluator():
-    """Test-Funktion für den MCPAdvancedEvaluator"""
-    print("\n=== MCPAdvancedEvaluator Test ===")
-    
-    # Evaluator erstellen
-    evaluator = EvaluatorFactory.create_ollama_evaluator(
-        model="llama3.2",
-        max_retries=2
-    )
-    
-    # Test-Interaktion
-    test_interaction = {
-        "original_prompt": "Wie ist das Wetter in Berlin?",
-        "model_initial": "Ich rufe das Wetter-Tool für Berlin auf.",
-        "tool_call_json": {"function": {"name": "get_weather", "arguments": '{"city": "berlin"}'}},
-        "tool_response": {"temperature": 22, "condition": "sunny", "city": "Berlin"},
-        "model_final": "Das Wetter in Berlin ist sonnig bei 22°C.",
-        "expected_tool_call": "get_weather",
-        "expected_parameters": {"city": "berlin"}
-    }
-    
-    try:
-        result = evaluator.evaluate_mcp_interaction(**test_interaction)
-        
-        print(f"Tool Usage Correctness: {result.tool_usage_correctness:.2f}")
-        print(f"Answer Correctness: {result.answer_correctness:.2f}")
-        print(f"Answer Completeness: {result.answer_completeness:.2f}")
-        print(f"Overall Score: {result.overall_score:.1f}/100")
-        print(f"Reasoning: {result.reasoning}")
-        print(f"Evaluation Time: {result.evaluation_time:.3f}s")
-        print(f"Retries: {result.retry_count}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"Test fehlgeschlagen: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-def test_multi_model_evaluator():
-    """Test-Funktion für den MCPMultiModelEvaluator"""
-    print("\n=== MCPMultiModelEvaluator Test ===")
-    
-    # Test-Modelle konfigurieren
-    test_models = [
-        {"name": "llama3.2", "provider": "ollama", "base_url": "http://localhost:11434"},
-        {"name": "llama3.1", "provider": "ollama", "base_url": "http://localhost:11434"},
-        # Weitere Modelle können hier hinzugefügt werden
-    ]
-    
-    # Multi-Model-Evaluator erstellen
-    multi_evaluator = EvaluatorFactory.create_multi_model_evaluator(
-        models=test_models,
-        base_config={
-            "max_retries": 2,
-            "temperature": 0.0,
-            "timeout": 30
-        },
-        show_progress=True
-    )
-    
-    # Test-Interaktion
-    test_interaction = {
-        "original_prompt": "Wie ist das Wetter in München?",
-        "model_initial": "Ich rufe das Wetter-Tool für München auf.",
-        "tool_call_json": {"function": {"name": "get_weather", "arguments": '{"city": "münchen"}'}},
-        "tool_response": {"temperature": 18, "condition": "cloudy", "city": "München"},
-        "model_final": "Das Wetter in München ist bewölkt bei 18°C.",
-        "expected_tool_call": "get_weather",
-        "expected_parameters": {"city": "münchen"}
-    }
-    
-    try:
-        # Multi-Model-Evaluierung
-        multi_result = multi_evaluator.evaluate_interaction_multi_model(**test_interaction)
-        
-        print(f"\n✅ Multi-Model-Evaluierung erfolgreich abgeschlossen!")
-        print(f"   Modelle evaluiert: {len(multi_result.model_evaluations)}")
-        print(f"   Erfolgreich: {multi_result.successful_evaluations}")
-        print(f"   Fehlgeschlagen: {multi_result.failed_evaluations}")
-        print(f"   Gesamtzeit: {multi_result.total_evaluation_time:.2f}s")
-        
-        # Details pro Modell
-        for eval_result in multi_result.model_evaluations:
-            print(f"\n   📋 {eval_result.evaluator_model}:")
-            print(f"      Score: {eval_result.overall_score:.1f}/100")
-            print(f"      Tool Usage: {eval_result.tool_usage_correctness:.2f}")
-            print(f"      Zeit: {eval_result.evaluation_time:.2f}s")
-            if eval_result.evaluation_error:
-                print(f"      ❌ Fehler: {eval_result.evaluation_error}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"Multi-Model-Test fehlgeschlagen: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-def test_batch_multi_model_evaluator():
-    """Test-Funktion für Batch-Multi-Model-Evaluierung"""
-    print("\n=== Batch Multi-Model-Evaluator Test ===")
-    
-    # Test-Modelle
-    test_models = [
-        {"name": "llama3.2", "provider": "ollama", "base_url": "http://localhost:11434"},
-    ]
-    
-    multi_evaluator = EvaluatorFactory.create_multi_model_evaluator(
-        models=test_models,
-        show_progress=True
-    )
-    
-    # Test-Interaktionen
-    test_interactions = [
-        {
-            "original_prompt": "Wie ist das Wetter in Berlin?",
-            "model_initial": "Ich rufe das Wetter-Tool auf.",
-            "tool_call_json": {"function": {"name": "get_weather", "arguments": '{"city": "berlin"}'}},
-            "tool_response": {"temperature": 22, "condition": "sunny"},
-            "model_final": "Das Wetter in Berlin ist sonnig bei 22°C.",
-            "expected_tool_call": "get_weather",
-            "expected_parameters": {"city": "berlin"}
-        },
-        {
-            "original_prompt": "Was gibt es heute in der Mensa?",
-            "model_initial": "Ich rufe das Mensa-Tool auf.",
-            "tool_call_json": {"function": {"name": "get_daily_menu", "arguments": '{"days_ahead": 0}'}},
-            "tool_response": {"menu": "Schnitzel mit Pommes", "date": "heute"},
-            "model_final": "Heute gibt es in der Mensa Schnitzel mit Pommes.",
-            "expected_tool_call": "get_daily_menu",
-            "expected_parameters": {"days_ahead": 0}
-        }
-    ]
-    
-    try:
-        # Batch-Evaluierung
-        batch_results = multi_evaluator.batch_evaluate_multi_model(test_interactions)
-        
-        print(f"\n✅ Batch-Multi-Model-Evaluierung abgeschlossen!")
-        print(f"   Interaktionen: {len(batch_results)}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"Batch-Multi-Model-Test fehlgeschlagen: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-if __name__ == "__main__":
-    # Tests ausführen
-    print("🚀 MCPAdvancedEvaluator Tests")
-    print("=" * 50)
-    
-    # 1. Standard-Evaluator Test
-    success1 = test_advanced_evaluator()
-    
-    # 2. Multi-Model-Evaluator Test  
-    success2 = test_multi_model_evaluator()
-    
-    # 3. Batch-Multi-Model-Test
-    success3 = test_batch_multi_model_evaluator()
-    
-    # Zusammenfassung
-    print("\n" + "=" * 50)
-    print("📊 TEST ZUSAMMENFASSUNG")
-    print("=" * 50)
-    print(f"✅ Standard-Evaluator: {'ERFOLG' if success1 else 'FEHLER'}")
-    print(f"✅ Multi-Model-Evaluator: {'ERFOLG' if success2 else 'FEHLER'}")
-    print(f"✅ Batch-Multi-Model: {'ERFOLG' if success3 else 'FEHLER'}")
-    
-    if all([success1, success2, success3]):
-        print("\n🎉 Alle Tests erfolgreich!")
-        print("\nNutzung des Multi-Model-Evaluators:")
-        print("=" * 40)
-        print("""
-# Beispiel-Konfiguration:
-models = [
-    {"name": "llama3.2", "provider": "ollama", "base_url": "http://localhost:11434"},
-    {"name": "llama3.1", "provider": "ollama", "base_url": "http://localhost:11434"},
-    {"name": "gpt-4", "provider": "openai", "api_key": "sk-..."}
-]
-
-# Multi-Model-Evaluator erstellen:
-evaluator = EvaluatorFactory.create_multi_model_evaluator(
-    models=models,
-    base_config={"max_retries": 3, "temperature": 0.0},
-    show_progress=True
-)
-
-# Einzelne Interaktion evaluieren:
-result = evaluator.evaluate_interaction_multi_model(
-    original_prompt="Wie ist das Wetter in Berlin?",
-    model_initial="Ich rufe das Tool auf...",
-    tool_call_json={"function": {"name": "get_weather", "arguments": '{"city": "berlin"}'}},
-    tool_response={"temperature": 22, "condition": "sunny"},
-    model_final="Das Wetter in Berlin ist sonnig bei 22°C."
-)
-
-# result.model_evaluations enthält Array aller Evaluierungen
-        """)
-    else:
-        print("\n❌ Einige Tests fehlgeschlagen!")
-        print("Überprüfen Sie die Ollama-Server-Verfügbarkeit und Modell-Installation.")
+# Hinweis: Tests und Demos befinden sich in separaten Dateien (z.B. mcp_advanced_demo.py).
