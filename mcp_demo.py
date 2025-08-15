@@ -12,7 +12,7 @@ NEUE FEATURES:
 - Detaillierte Metriken für Tool-Usage, Korrektheit und Vollständigkeit
 """
 
-from mcp_benchmark_llm import TestCase, run_mcp_benchmark
+from mcp_benchmark_llm_old import TestCase, run_mcp_benchmark
 import subprocess
 import json
 import sys
@@ -195,7 +195,7 @@ def get_all_tools_from_servers():
 def main():
     # 1. Test-Cases definieren - fokussiert auf die erfolgreich getesteten
     test_cases = [
-        # Weather Service Tests - Kernfälle die gut funktionieren
+        # Weather Service Tests - verschiedene deutsche Städte
         TestCase(
             name="Berlin Weather",
             prompt="Wie ist das Wetter in Berlin?",
@@ -203,10 +203,118 @@ def main():
             expected_parameters={"city": "berlin"}
         ),
         TestCase(
-            name="München Weather",
-            prompt="Zeig mir das Wetter in München.",
+            name="Munich Weather Alternative",
+            prompt="Zeige mir das aktuelle Wetter in München.",
             expected_tool_call="get_weather",
             expected_parameters={"city": "münchen"}
+        ),
+        TestCase(
+            name="Hamburg Weather Casual",
+            prompt="Wie ist es denn heute in Hamburg?",
+            expected_tool_call="get_weather",
+            expected_parameters={"city": "hamburg"}
+        ),
+        TestCase(
+            name="Frankfurt Weather Short",
+            prompt="Frankfurt Wetter?",
+            expected_tool_call="get_weather",
+            expected_parameters={"city": "frankfurt"}
+        ),
+        TestCase(
+            name="Cologne Weather Formal",
+            prompt="Können Sie mir bitte das Wetter für Köln mitteilen?",
+            expected_tool_call="get_weather",
+            expected_parameters={"city": "köln"}
+        ),
+        TestCase(
+            name="Stuttgart Weather Question",
+            prompt="Regnet es gerade in Stuttgart?",
+            expected_tool_call="get_weather",
+            expected_parameters={"city": "stuttgart"}
+        ),
+        
+        # Weather Comparisons - verschiedene Formulierungen
+        TestCase(
+            name="Weather Comparison Standard",
+            prompt="Vergleiche das Wetter zwischen München und Hamburg.",
+            expected_tool_call="compare_weather",
+            expected_parameters={"city1": "münchen", "city2": "hamburg"}
+        ),
+        TestCase(
+            name="Weather Comparison Casual",
+            prompt="Wo ist es wärmer - in Berlin oder Düsseldorf?",
+            expected_tool_call="compare_weather",
+            expected_parameters={"city1": "berlin", "city2": "düsseldorf"}
+        ),
+        TestCase(
+            name="Weather Comparison Direct",
+            prompt="Dresden vs Leipzig Wetter",
+            expected_tool_call="compare_weather",
+            expected_parameters={"city1": "dresden", "city2": "leipzig"}
+        ),
+        
+        # Hourly Forecast Tests - verschiedene Stunden
+        TestCase(
+            name="Hourly Forecast 12h",
+            prompt="Gib mir die Wettervorhersage für die nächsten 12 Stunden in Berlin.",
+            expected_tool_call="get_hourly_forecast",
+            expected_parameters={"city": "berlin", "hours": 12}
+        ),
+        TestCase(
+            name="Hourly Forecast 24h",
+            prompt="Wie wird das Wetter in den nächsten 24 Stunden in Hannover?",
+            expected_tool_call="get_hourly_forecast",
+            expected_parameters={"city": "hannover", "hours": 24}
+        ),
+        TestCase(
+            name="Hourly Forecast 6h",
+            prompt="Stundenvorhersage für Nürnberg, nächste 6 Stunden",
+            expected_tool_call="get_hourly_forecast",
+            expected_parameters={"city": "nürnberg", "hours": 6}
+        ),
+        
+        # Mensa Service Tests - verschiedene Tage und Formulierungen
+        TestCase(
+            name="Today Menu Simple",
+            prompt="Was gibt es heute in der Mensa?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 0}
+        ),
+        TestCase(
+            name="Today Menu Detailed",
+            prompt="Zeig mir das heutige Mensamenü.",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 0}
+        ),
+        TestCase(
+            name="Tomorrow Menu",
+            prompt="Was steht morgen auf dem Mensaplan?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 1}
+        ),
+        TestCase(
+            name="Tomorrow Menu Alternative",
+            prompt="Mensamenü für morgen anzeigen",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 1}
+        ),
+        TestCase(
+            name="Day After Tomorrow Menu",
+            prompt="Was gibt es übermorgen zu essen?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 2}
+        ),
+        TestCase(
+            name="Future Menu 3 Days",
+            prompt="Mensaplan in 3 Tagen?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 3}
+        ),
+        TestCase(
+            name="Future Menu Formal",
+            prompt="Können Sie mir das Menü für übermorgen zeigen?",
+            expected_tool_call="get_daily_menu",
+            expected_parameters={"days_ahead": 2}
         )
     ]
     
