@@ -633,7 +633,7 @@ graph TD
     
 ```
 </div>
-<a href="https://ollama.ios.htwg-konstanz.de" target="_blank">
+<a href="https://ollama.ios.htwg-konstanz.de:3000" target="_blank">
 <div class="mt-4 p-3 bg-yellow-900 bg-opacity-30 rounded flex flex-col items-center justify-center text-center">
   📺 Live Demo
 </div>
