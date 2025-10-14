@@ -544,7 +544,8 @@ layout: default
 ---
 
 # Benchmark-Ergebnisse
-# TODO: Tatsächliche Ergebnisse - Bzw. Verlinkung
+* [Email Benchmark](http://192.168.50.117:8021/email_benchmark.html)
+* [MCP Benchmark](http://192.168.50.117:8021/mcp_benchmark.html)
 
 ---
 layout: center
@@ -608,6 +609,12 @@ layout: default
 - Forecast-Modelle integrieren
 - LLM-basierte Interpretation
 
+**Verfügbeare Tools**
+
+- get_current_weather - Gibt die aktuellen Wetterdaten zurück
+- get_forcast_summary - Gibt eine Vorhersage für ein besimmtes Datum zurück
+- get_weather_summary - Gibt historische Wetterdaten zurück
+
 </v-clicks>
 </div>
 
@@ -617,22 +624,20 @@ layout: default
 ### **Architektur**
 
 <div class="bg-gray-800 p-4 rounded-lg">
-TODO Architektur-Diagramm 
-*[Platzhalter für Architektur-Diagramm]*
-
+Architektur-Diagramm 
 ```mermaid {scale: 0.5}
 graph TD
-    W[Wetterstation] -->|Daten| API
-    API -->|MCP| LLM
-    LLM -->|Analyse| User
+    FOGCAST[Fogcast API] -->|REST API| MCP[MCP Server<br/>Weather Tools]
+    MCP -->|MCP Protocol| LLM[LLM Integration<br/>Open WebUI + Ollama]
+    LLM -->|Chat Interface| USER[User<br/>Weather Queries]
+    
 ```
-
 </div>
-
-<div class="mt-4 p-3 bg-yellow-900 bg-opacity-30 rounded">
-TODO Demo
-📺 **Live-Demo vorbereitet!**
+<a href="https://ollama.ios.htwg-konstanz.de" target="_blank">
+<div class="mt-4 p-3 bg-yellow-900 bg-opacity-30 rounded flex flex-col items-center justify-center text-center">
+  📺 Live Demo
 </div>
+  </a>
 
 </v-click>
 </div>
