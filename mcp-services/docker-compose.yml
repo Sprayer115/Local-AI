@@ -44,6 +44,29 @@ services:
       retries: 3
       start_period: 15s
 
+  # HTTP-SSE Server für Time Service
+  time-proxy:
+    build:
+      context: ./time-service
+      dockerfile: Dockerfile.mcpo
+    ports:
+      - "8009:8000"
+    networks:
+      - mcp-network
+    container_name: mcp-time-proxy
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src
+      - LOCAL_TIMEZONE=${LOCAL_TIMEZONE:-UTC}
+      - HOST=0.0.0.0
+      - PORT=8000
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
 networks:
   mcp-network:
     driver: bridge
