@@ -8,7 +8,7 @@ import json
 import logging
 import time
 import re
-from typing import Any, Dict, List, Optional, Union, Tuple
+from typing import Any, Dict, List, Optional, Union, Tuple, Callable
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -1173,5 +1173,526 @@ Spezifische Anforderungen:"""
         criteria += f"\n{i}. {req}"
     
     return criteria
+
+# ==============================================================================
+# MCPBenchmarkLLM - LLM-Wrapper für MCP-Benchmarking mit echten Tool-Calls
+# ==============================================================================
+
+@dataclass
+class BenchmarkResult:
+    """Benchmark-Ergebnis für einen einzelnen Test mit echtem LLM-Call"""
+    test_case: TestCase
+    model: str
+    provider: str
+    round_number: int
+    
+    # Timing-Metriken
+    response_time: float
+    first_tool_call_time: Optional[float] = None
+    
+    # Tool-Call-Analyse
+    tool_calls_made: int = 0
+    correct_tool_called: bool = False
+    correct_parameters: bool = False
+    parameter_accuracy: float = 0.0  # Prozentsatz korrekte Parameter
+    
+    # Tatsächliche Ergebnisse vom LLM
+    actual_tool_call: Optional[str] = None
+    actual_parameters: Dict[str, Any] = field(default_factory=dict)
+    tool_execution_time: Optional[float] = None
+    
+    # LLM-Antworten (initial = vor Tool-Execution, final = nach Tool-Execution)
+    model_initial: str = ""
+    model_final: str = ""
+    
+    # Meta-Daten
+    error: Optional[str] = None
+    tokens_used: Optional[int] = None
+    response_content: str = ""
+    
+    # Evaluierung (optional, wird später hinzugefügt)
+    evaluation_result: Optional[MCPEvaluationResult] = None
+    
+    def to_dict(self) -> Dict:
+        """Konvertiert zu Dictionary für JSON-Export"""
+        return {
+            # Test-Case wird separat exportiert, hier nur Referenz
+            "test_case_name": self.test_case.name if self.test_case else None,
+            
+            # Modell-Informationen
+            "model": self.model,
+            "provider": self.provider,
+            "round_number": self.round_number,
+            
+            # Timing-Metriken
+            "response_time": self.response_time,
+            "first_tool_call_time": self.first_tool_call_time,
+            "tool_execution_time": self.tool_execution_time,
+            
+            # Tool-Call-Analyse
+            "tool_calls_made": self.tool_calls_made,
+            "correct_tool_called": self.correct_tool_called,
+            "correct_parameters": self.correct_parameters,
+            "parameter_accuracy": self.parameter_accuracy,
+            
+            # Tatsächliche Ergebnisse vom LLM (WICHTIG!)
+            "actual_tool_call": self.actual_tool_call,
+            "actual_parameters": self.actual_parameters,
+            
+            # LLM-Antworten (vor und nach Tool-Execution)
+            "model_initial": self.model_initial,
+            "model_final": self.model_final,
+            "response_content": self.response_content,
+            
+            # Meta-Daten
+            "error": self.error,
+            "tokens_used": self.tokens_used,
+            
+            # Evaluierung (optional)
+            "evaluation_result": self.evaluation_result.to_dict() if self.evaluation_result else None
+        }
+
+
+class MCPBenchmarkLLM:
+    """
+    LLM-Wrapper für MCP-Benchmarking mit echten Tool-Calls
+    
+    Diese Klasse führt ECHTE LLM-Calls durch (nicht Mock-Daten):
+    1. Initialer LLM-Call mit Tool-Definitionen -> Tool-Call wird generiert
+    2. Tool-Execution mit den vom LLM generierten Parametern
+    3. Finaler LLM-Call mit Tool-Response -> Finale Antwort wird generiert
+    4. Optional: Evaluierung der gesamten Interaktion
+    """
+    
+    def __init__(
+        self,
+        model: str,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        temperature: float = 0.2,
+        max_tokens: Optional[int] = None,
+        timeout: Optional[int] = 60,
+        **extra_settings
+    ):
+        self.model = model
+        self.api_key = api_key
+        self.base_url = base_url
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.timeout = timeout
+        self.extra_settings = extra_settings
+        
+        # LiteLLM konfigurieren
+        litellm.telemetry = False
+        litellm.set_verbose = False
+        litellm.suppress_debug_messages = True
+        litellm.drop_params = True
+        litellm.modify_params = True
+        
+        # Warnings unterdrücken
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
+        
+        logger.info(f"MCPBenchmarkLLM initialisiert für Modell: {model}")
+    
+    def _build_completion_params(self, **override_params) -> Dict[str, Any]:
+        """Baut Parameter für LiteLLM completion calls"""
+        params = {
+            "model": self.model,
+            "temperature": self.temperature,
+        }
+        
+        # Optionale Parameter hinzufügen
+        if self.base_url:
+            params["base_url"] = self.base_url
+        if self.api_key:
+            params["api_key"] = self.api_key
+        if self.timeout:
+            params["timeout"] = self.timeout
+        if self.max_tokens:
+            params["max_tokens"] = self.max_tokens
+            
+        # Extra-Einstellungen (z.B. num_ctx für Ollama)
+        extra_params_filtered = {k: v for k, v in self.extra_settings.items() 
+                                 if k not in ["evaluator_enabled", "evaluator_model", "evaluator_base_url"]}
+        if extra_params_filtered:
+            params.update(extra_params_filtered)
+            
+        # Override-Parameter anwenden
+        params.update(override_params)
+        
+        return params
+    
+    def _is_ollama_provider(self) -> bool:
+        """Erkennt Ollama-Provider unabhängig von der Namenskonvention"""
+        if not self.model:
+            return False
+            
+        # Direkter ollama/ Prefix
+        if self.model.startswith("ollama/"):
+            return True
+            
+        # Prüfe Base URL
+        if self.base_url and ("localhost:11434" in self.base_url or "127.0.0.1:11434" in self.base_url):
+            return True
+            
+        return False
+    
+    def _calculate_parameter_accuracy(
+        self,
+        expected_params: Dict[str, Any],
+        actual_params: Dict[str, Any]
+    ) -> float:
+        """
+        Berechnet die Genauigkeit der Parameter als Prozentsatz
+        """
+        if not expected_params:
+            return 1.0 if not actual_params else 0.0
+        
+        correct_params = 0
+        total_params = len(expected_params)
+        
+        for key, expected_value in expected_params.items():
+            if key in actual_params:
+                actual_value = actual_params[key]
+                # Flexible Vergleiche für verschiedene Datentypen
+                if isinstance(expected_value, str) and isinstance(actual_value, str):
+                    if expected_value.lower() == actual_value.lower():
+                        correct_params += 1
+                elif expected_value == actual_value:
+                    correct_params += 1
+        
+        return correct_params / total_params if total_params > 0 else 0.0
+    
+    def _parse_tool_call_arguments(self, tool_call: Dict, is_ollama: bool = False) -> tuple:
+        """
+        Parst Tool-Call-Argumente sicher
+        
+        Returns:
+            tuple: (function_name, arguments, tool_call_id)
+        """
+        try:
+            if is_ollama:
+                # Spezielle Behandlung für Ollama
+                if "function" in tool_call and isinstance(tool_call["function"], dict):
+                    function_name = tool_call["function"]["name"]
+                    arguments = json.loads(tool_call["function"]["arguments"])
+                else:
+                    function_name = tool_call.get("name", "unknown_function")
+                    arguments_str = tool_call.get("arguments", "{}")
+                    arguments = json.loads(arguments_str) if arguments_str else {}
+                tool_call_id = tool_call.get("id", f"tool_{id(tool_call)}")
+            else:
+                # Standard-Format für andere Provider
+                function_name = tool_call["function"]["name"]
+                arguments_str = tool_call["function"]["arguments"]
+                arguments = json.loads(arguments_str) if arguments_str else {}
+                tool_call_id = tool_call["id"]
+                
+        except (KeyError, json.JSONDecodeError, TypeError) as e:
+            logger.error(f"Fehler beim Parsen der Tool-Call-Argumente: {e}")
+            function_name = tool_call.get("name", "unknown_function")
+            arguments = {}
+            tool_call_id = tool_call.get("id", f"tool_{id(tool_call)}")
+            
+        return function_name, arguments, tool_call_id
+    
+    def benchmark_test_case(
+        self,
+        test_case: TestCase,
+        tools: List[Dict],
+        execute_tool_fn: Callable,
+        provider: str,
+        round_number: int = 1,
+        evaluator: Optional[MCPAdvancedEvaluator] = None
+    ) -> BenchmarkResult:
+        """
+        Führt einen einzelnen Test-Case durch mit ECHTEN LLM-Calls
+        
+        Args:
+            test_case: Der zu testende TestCase mit erwarteten Ergebnissen
+            tools: Liste der verfügbaren Tools (OpenAI-Format)
+            execute_tool_fn: Funktion zum Ausführen der Tools
+            provider: Name des Providers (z.B. "ollama", "openai")
+            round_number: Nummer der Wiederholung
+            evaluator: Optional - MCPAdvancedEvaluator für Bewertung
+            
+        Returns:
+            BenchmarkResult: Detaillierte Ergebnisse mit echten LLM-generierten Daten
+        """
+        start_time = time.time()
+        first_tool_call_time = None
+        tool_execution_time = None
+        error = None
+        
+        # Ergebnis-Objekt initialisieren
+        result = BenchmarkResult(
+            test_case=test_case,
+            model=self.model,
+            provider=provider,
+            round_number=round_number,
+            response_time=0.0
+        )
+        
+        try:
+            # Nachrichten aufbauen
+            messages = []
+            if test_case.system_prompt:
+                messages.append({"role": "system", "content": test_case.system_prompt})
+            messages.append({"role": "user", "content": test_case.prompt})
+            
+            logger.info(f"🚀 Test '{test_case.name}' - Runde {round_number} - Modell: {self.model}")
+            logger.debug(f"   Erwarteter Tool-Call: {test_case.expected_tool_call}")
+            logger.debug(f"   Erwartete Parameter: {test_case.expected_parameters}")
+            
+            # ========== SCHRITT 1: INITIALER LLM-CALL MIT TOOLS ==========
+            completion_params = self._build_completion_params(
+                messages=messages,
+                tools=tools,
+                stream=False
+            )
+            
+            logger.debug(f"   Rufe LLM auf mit {len(tools)} Tools...")
+            response = litellm.completion(**completion_params)
+            response_content = response["choices"][0]["message"]["content"] or ""
+            tool_calls = response["choices"][0]["message"].get("tool_calls")
+            
+            # Model initial response speichern
+            result.model_initial = response_content if response_content else "(Tool-Call ohne Text)"
+            result.response_content = response_content
+            result.tool_calls_made = len(tool_calls) if tool_calls else 0
+            
+            # Token-Zählung
+            if hasattr(response, 'usage') and response.usage:
+                result.tokens_used = response.usage.total_tokens
+            
+            if not tool_calls:
+                logger.warning(f"   ⚠️ Kein Tool-Call generiert!")
+                result.error = "Kein Tool-Call vom LLM generiert"
+                result.response_time = time.time() - start_time
+                return result
+            
+            # ========== SCHRITT 2: TOOL-CALL ANALYSIEREN ==========
+            first_tool_call_time = time.time() - start_time
+            result.first_tool_call_time = first_tool_call_time
+            
+            # Ersten Tool-Call extrahieren
+            first_tool_call = tool_calls[0]
+            is_ollama = self._is_ollama_provider()
+            
+            if isinstance(first_tool_call, dict):
+                function_name, arguments, tool_call_id = self._parse_tool_call_arguments(
+                    first_tool_call, is_ollama
+                )
+            else:
+                # Objekt-Style Tool-Calls
+                try:
+                    function_name = first_tool_call.function.name
+                    arguments = json.loads(first_tool_call.function.arguments) if first_tool_call.function.arguments else {}
+                    tool_call_id = first_tool_call.id
+                except (json.JSONDecodeError, AttributeError) as e:
+                    logger.error(f"   ❌ Fehler beim Parsen des Tool-Calls: {e}")
+                    function_name = "unknown_function"
+                    arguments = {}
+                    tool_call_id = f"tool_{id(first_tool_call)}"
+            
+            result.actual_tool_call = function_name
+            result.actual_parameters = arguments
+            
+            logger.info(f"   🔧 Tool-Call: {function_name}({json.dumps(arguments, ensure_ascii=False)})")
+            
+            # Tool-Call-Korrektheit prüfen
+            result.correct_tool_called = (function_name == test_case.expected_tool_call)
+            result.parameter_accuracy = self._calculate_parameter_accuracy(
+                test_case.expected_parameters, arguments
+            )
+            result.correct_parameters = (result.parameter_accuracy == 1.0)
+            
+            logger.info(f"   {'✅' if result.correct_tool_called else '❌'} Tool korrekt: {result.correct_tool_called}")
+            logger.info(f"   {'✅' if result.correct_parameters else '❌'} Parameter-Genauigkeit: {result.parameter_accuracy:.1%}")
+            
+            # ========== SCHRITT 3: TOOL AUSFÜHREN ==========
+            tool_response = None
+            if execute_tool_fn:
+                tool_start_time = time.time()
+                try:
+                    logger.debug(f"   Führe Tool aus: {function_name}...")
+                    tool_response = execute_tool_fn(function_name, arguments)
+                    result.tool_execution_time = time.time() - tool_start_time
+                    logger.debug(f"   Tool-Response: {str(tool_response)[:100]}...")
+                except Exception as e:
+                    logger.warning(f"   ⚠️ Tool-Ausführung fehlgeschlagen: {e}")
+                    result.tool_execution_time = time.time() - tool_start_time
+                    tool_response = {"error": str(e)}
+            
+            # ========== SCHRITT 4: FINALER LLM-CALL MIT TOOL-RESPONSE ==========
+            try:
+                # Conversation-History aufbauen
+                final_messages = messages.copy()
+                
+                # Erste LLM-Antwort mit Tool-Call hinzufügen
+                assistant_msg = {"role": "assistant", "content": response_content}
+                if tool_calls:
+                    assistant_msg["tool_calls"] = tool_calls
+                final_messages.append(assistant_msg)
+                
+                # Tool-Response hinzufügen
+                tool_msg = {
+                    "role": "tool", 
+                    "tool_call_id": tool_call_id,
+                    "content": json.dumps(tool_response, ensure_ascii=False) if tool_response else "Tool execution failed"
+                }
+                final_messages.append(tool_msg)
+                
+                logger.debug(f"   Rufe LLM für finale Antwort auf...")
+                
+                # Finalen LLM-Aufruf machen (OHNE Tools, da schon verwendet)
+                final_params = self._build_completion_params(
+                    messages=final_messages,
+                    stream=False
+                )
+                
+                final_response = litellm.completion(**final_params)
+                result.model_final = final_response["choices"][0]["message"]["content"] or ""
+                
+                logger.info(f"   💬 Finale Antwort: {result.model_final[:100]}...")
+                
+            except Exception as e:
+                logger.warning(f"   ⚠️ Finaler LLM-Aufruf fehlgeschlagen: {e}")
+                # Fallback: Verwende Tool-Response direkt
+                if tool_response:
+                    result.model_final = f"Tool-Daten: {json.dumps(tool_response, ensure_ascii=False)}"
+                else:
+                    result.model_final = "Fehler bei Tool-Verarbeitung"
+                    result.error = str(e)
+            
+            # ========== SCHRITT 5: OPTIONAL - EVALUIERUNG ==========
+            if evaluator:
+                try:
+                    logger.debug(f"   Evaluiere Interaktion...")
+                    eval_result = evaluator.evaluate_mcp_interaction(
+                        original_prompt=test_case.prompt,
+                        model_initial=result.model_initial,
+                        tool_call_json={"function": {"name": function_name, "arguments": arguments}},
+                        tool_response=tool_response,
+                        model_final=result.model_final,
+                        expected_tool_call=test_case.expected_tool_call,
+                        expected_parameters=test_case.expected_parameters
+                    )
+                    result.evaluation_result = eval_result
+                    logger.info(f"   📊 Evaluierung: {eval_result.overall_score:.1f}/100")
+                except Exception as e:
+                    logger.warning(f"   ⚠️ Evaluierung fehlgeschlagen: {e}")
+            
+        except Exception as e:
+            logger.error(f"   ❌ Test fehlgeschlagen: {e}")
+            result.error = str(e)
+        
+        # Response-Time berechnen
+        result.response_time = time.time() - start_time
+        logger.info(f"   ⏱️ Gesamt-Zeit: {result.response_time:.2f}s")
+        
+        return result
+
+
+def run_mcp_benchmark(
+    test_cases: List[TestCase],
+    models: List[Dict[str, Any]],
+    tools: List[Dict],
+    execute_tool_fn: Callable,
+    repetition_rounds: int = 1,
+    evaluator_config: Optional[Dict[str, Any]] = None
+) -> List[BenchmarkResult]:
+    """
+    Führt MCP-Benchmark für mehrere Modelle und Test-Cases durch
+    
+    Args:
+        test_cases: Liste von TestCases
+        models: Liste von Modell-Konfigurationen (jedes Dict mit "name", "provider", "config")
+        tools: Liste von Tool-Definitionen (OpenAI-Format)
+        execute_tool_fn: Funktion zum Ausführen der Tools
+        repetition_rounds: Anzahl der Wiederholungen pro Test
+        evaluator_config: Optional - Konfiguration für Evaluator
+        
+    Returns:
+        Liste von BenchmarkResults
+    """
+    results = []
+    total_tests = len(test_cases) * len(models) * repetition_rounds
+    
+    logger.info(f"{'='*80}")
+    logger.info(f"MCP BENCHMARK START")
+    logger.info(f"{'='*80}")
+    logger.info(f"Test-Cases: {len(test_cases)}")
+    logger.info(f"Modelle: {len(models)}")
+    logger.info(f"Tools: {len(tools)}")
+    logger.info(f"Wiederholungen: {repetition_rounds}")
+    logger.info(f"Gesamt-Tests: {total_tests}")
+    logger.info(f"{'='*80}\n")
+    
+    # Optional: Evaluator erstellen
+    evaluator = None
+    if evaluator_config:
+        try:
+            evaluator = MCPAdvancedEvaluator(**evaluator_config)
+            logger.info(f"✅ Evaluator aktiviert: {evaluator_config.get('model', 'unknown')}\n")
+        except Exception as e:
+            logger.warning(f"⚠️ Evaluator konnte nicht erstellt werden: {e}\n")
+    
+    test_counter = 0
+    
+    for model_config in models:
+        model_name = model_config["name"]
+        provider = model_config["provider"]
+        config = model_config.get("config", {})
+        
+        logger.info(f"\n{'='*80}")
+        logger.info(f"MODELL: {model_name} ({provider})")
+        logger.info(f"{'='*80}")
+        
+        # LLM-Instanz erstellen
+        try:
+            llm = MCPBenchmarkLLM(**config)
+        except Exception as e:
+            logger.error(f"❌ Fehler beim Initialisieren von {model_name}: {e}")
+            continue
+        
+        for test_case in test_cases:
+            for round_num in range(1, repetition_rounds + 1):
+                test_counter += 1
+                logger.info(f"\n[{test_counter}/{total_tests}] {test_case.name} - Runde {round_num}")
+                
+                try:
+                    result = llm.benchmark_test_case(
+                        test_case=test_case,
+                        tools=tools,
+                        execute_tool_fn=execute_tool_fn,
+                        provider=provider,
+                        round_number=round_num,
+                        evaluator=evaluator
+                    )
+                    results.append(result)
+                    
+                except Exception as e:
+                    logger.error(f"❌ Test fehlgeschlagen: {e}")
+                    # Erstelle Fehler-Result
+                    error_result = BenchmarkResult(
+                        test_case=test_case,
+                        model=model_name,
+                        provider=provider,
+                        round_number=round_num,
+                        response_time=0.0,
+                        error=str(e)
+                    )
+                    results.append(error_result)
+    
+    logger.info(f"\n{'='*80}")
+    logger.info(f"MCP BENCHMARK ABGESCHLOSSEN")
+    logger.info(f"{'='*80}")
+    logger.info(f"Durchgeführte Tests: {len(results)}")
+    logger.info(f"Erfolgreiche Tests: {sum(1 for r in results if r.error is None)}")
+    logger.info(f"Fehlgeschlagene Tests: {sum(1 for r in results if r.error is not None)}")
+    logger.info(f"{'='*80}\n")
+    
+    return results
 
 # Hinweis: Tests und Demos befinden sich in separaten Dateien (z.B. mcp_advanced_demo.py).

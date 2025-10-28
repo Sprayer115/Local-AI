@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Demonstration der MCP Multi-Model-Evaluierung
+Demonstration der MCP Multi-Model-Evaluierung mit ECHTEN LLM-Calls
 Zeigt die neue Multi-Model-Evaluierungsfunktionalität aus mcp_benchmark_llm.py
+
+WICHTIG: Diese Demo verwendet ECHTE LLM-Calls, keine Mock-Daten!
+- MCPBenchmarkLLM generiert echte Tool-Calls
+- Tools werden mit LLM-generierten Parametern ausgeführt
+- Multi-Model-Evaluatoren bewerten die echten Ergebnisse
 """
 
 import json
@@ -9,16 +14,25 @@ import time
 from typing import Dict, Any, List
 from dataclasses import asdict
 
-# Import der neuen Multi-Model-Klassen aus der refaktorierten mcp_benchmark_llm.py
+# Import der Multi-Model-Klassen UND der Benchmark-Klasse
 from mcp_benchmark_llm import (
     MCPMultiModelEvaluator,
+    MCPBenchmarkLLM,
+    BenchmarkResult,
     EvaluatorFactory,
     TestCase,
     MultiModelEvaluationResult
 )
 
 def export_multi_model_results(multi_model_results: List[Dict[str, Any]], filename: str | None = None) -> str:
-    """Speichert die Multi-Model-Ergebnisse als JSON-Datei und gibt den Dateinamen zurück."""
+    """
+    Speichert die Multi-Model-Ergebnisse als JSON-Datei und gibt den Dateinamen zurück.
+    
+    Struktur:
+    - test_case: Erwartete Eingaben/Outputs
+    - benchmark_result: Echte LLM-Outputs (actual_tool_call, model_initial, model_final, etc.)
+    - multi_model_result: Evaluierungen von mehreren Modellen
+    """
     # Modelle aggregieren
     models_used: List[str] = []
     for entry in multi_model_results:
@@ -33,13 +47,21 @@ def export_multi_model_results(multi_model_results: List[Dict[str, Any]], filena
         "type": "multi_model_mcp_evaluation",
         "total_test_cases": len(multi_model_results),
         "models": models_used,
+        "description": "Multi-Model MCP Evaluation with REAL LLM calls (not mocked)",
+        "structure": {
+            "test_case": "Expected inputs/outputs for the test",
+            "benchmark_result": "REAL LLM outputs: actual_tool_call, model_initial, model_final, parameters, etc.",
+            "multi_model_result": "Evaluations from multiple evaluator models"
+        },
         "results": []
     }
 
     for entry in multi_model_results:
         test_case = entry.get("test_case", {})
+        benchmark_result = entry.get("benchmark_result")  # ✅ Benchmark-Ergebnis holen
         mmr = entry.get("multi_model_result")
         mmr_dict = mmr.to_dict() if hasattr(mmr, "to_dict") else {}
+        
         # TestCase robust serialisieren (Objekt -> Dict)
         if isinstance(test_case, TestCase) or hasattr(test_case, "__dataclass_fields__"):
             test_case_serialized = asdict(test_case)
@@ -47,11 +69,27 @@ def export_multi_model_results(multi_model_results: List[Dict[str, Any]], filena
             test_case_serialized = test_case
         else:
             test_case_serialized = {"name": getattr(test_case, "name", str(test_case))}
+        
+        # ✅ Benchmark-Result serialisieren (enthält echte LLM-Daten)
+        benchmark_result_serialized = None
+        if benchmark_result:
+            if hasattr(benchmark_result, "to_dict"):
+                benchmark_result_serialized = benchmark_result.to_dict()
+            elif hasattr(benchmark_result, "__dataclass_fields__"):
+                benchmark_result_serialized = asdict(benchmark_result)
+            elif isinstance(benchmark_result, dict):
+                benchmark_result_serialized = benchmark_result
 
-        data["results"].append({
+        result_entry = {
             "test_case": test_case_serialized,
             "multi_model_result": mmr_dict
-        })
+        }
+        
+        # ✅ Benchmark-Result hinzufügen (falls vorhanden)
+        if benchmark_result_serialized:
+            result_entry["benchmark_result"] = benchmark_result_serialized
+        
+        data["results"].append(result_entry)
 
     if not filename:
         filename = f"mcp_benchmark_results_{data['timestamp']}.json"
@@ -217,23 +255,49 @@ def get_all_tools_from_servers():
     return all_tools
 
 def demonstrate_multi_model_evaluator():
-    """Demonstriert die neue Multi-Model-Evaluierung direkt ohne externe LLM-Calls"""
+    """
+    Demonstriert die Multi-Model-Evaluierung mit ECHTEN LLM-Calls
+    
+    Flow:
+    1. Erstellt MCPBenchmarkLLM für das zu testende Modell
+    2. Führt ECHTE Tool-Calls durch (nicht Mock!)
+    3. Evaluiert mit mehreren Evaluator-Modellen
+    """
     
     print("=== MCP Multi-Model-Evaluator Demonstration ===\n")
+    print("⚠️  WICHTIG: Diese Demo macht ECHTE LLM-Calls!\n")
     
-    # 1. Multi-Model-Konfiguration
+    # 1. Zu testendes Modell konfigurieren
+    test_model_config = {
+        "model": "ollama/llama3.2",
+        "base_url": "http://localhost:11434",
+        "temperature": 0.2,
+        "timeout": 60
+    }
+    
+    print(f"🤖 Zu testendes Modell: {test_model_config['model']}")
+    
+    # 2. Multi-Model-Evaluator-Konfiguration
     evaluation_models = [
         {"name": "llama3.2", "provider": "ollama", "base_url": "http://localhost:11434"},
-        # Weitere Modelle können hier hinzugefügt werden
         {"name": "mistral", "provider": "ollama", "base_url": "http://localhost:11434"},
     ]
     
-    print(f"Konfigurierte Evaluator-Modelle: {len(evaluation_models)}")
+    print(f"\n📊 Evaluator-Modelle: {len(evaluation_models)}")
     for model in evaluation_models:
         print(f"   • {model['provider']}/{model['name']}")
     
-    # 2. Multi-Model-Evaluator erstellen
-    print(f"\nErstelle Multi-Model-Evaluator...")
+    # 3. MCPBenchmarkLLM erstellen (für echte Tool-Calls)
+    print(f"\n🔧 Erstelle MCPBenchmarkLLM...")
+    try:
+        llm = MCPBenchmarkLLM(**test_model_config)
+        print("✅ MCPBenchmarkLLM erfolgreich erstellt")
+    except Exception as e:
+        print(f"❌ Fehler beim Erstellen von MCPBenchmarkLLM: {e}")
+        return []
+    
+    # 4. Multi-Model-Evaluator erstellen
+    print(f"\n🔧 Erstelle Multi-Model-Evaluator...")
     
     try:
         multi_evaluator = EvaluatorFactory.create_multi_model_evaluator(
@@ -367,20 +431,14 @@ def demonstrate_multi_model_evaluator():
         )
     ]
     
-    # 4. Multi-Model-Evaluierung für jeden TestCase
-    print(f"\n{'='*80}")
-    print("STARTE MULTI-MODEL MCP-EVALUIERUNG")
-    print(f"{'='*80}")
-    print(f"TestCases: {len(test_cases)}")
-    print(f"Evaluator-Modelle: {len(evaluation_models)}")
-    print(f"{'='*80}")
-
-    multi_model_results = []
-
-    # Für jede TestCase: Tool-Call wie im Benchmark durchführen, dann Multi-Model-Evaluierung
+    # 5. Tools laden
+    print(f"\n🔧 Lade MCP Tools...")
     tools = get_all_tools_from_servers()
+    print(f"✅ {len(tools)} Tools geladen")
+    
+    # 6. Tool-Execution-Funktion (Mock - simuliert echte API-Calls)
     def execute_tool(function_name: str, arguments: dict) -> dict:
-        # Mock-Response wie in demonstrate_advanced_evaluator_with_standard_testcases
+        """Simuliert Tool-Execution (in Produktion würde hier echter API-Call stattfinden)"""
         if function_name == "get_weather":
             city = arguments.get("city", "Unknown")
             return {
@@ -450,34 +508,112 @@ def demonstrate_multi_model_evaluator():
                 "status": "success",
                 "mock_response": f"Tool {function_name} erfolgreich ausgeführt"
             }
+    
+    # 7. ECHTE LLM-Benchmarks durchführen
+    print(f"\n{'='*80}")
+    print("STARTE ECHTE LLM-BENCHMARKS MIT MULTI-MODEL-EVALUIERUNG")
+    print(f"{'='*80}")
+    print(f"TestCases: {len(test_cases)}")
+    print(f"Zu testendes Modell: {test_model_config['model']}")
+    print(f"Evaluator-Modelle: {len(evaluation_models)}")
+    print(f"{'='*80}\n")
+
+    multi_model_results = []
+    benchmark_results = []
 
     for i, test_case in enumerate(test_cases, 1):
-        print(f"\n--- TestCase {i}/{len(test_cases)}: {test_case.name} ---")
+        print(f"\n{'='*60}")
+        print(f"TestCase {i}/{len(test_cases)}: {test_case.name}")
+        print(f"{'='*60}")
+        
         try:
-            # Tool-Call wie im Benchmark durchführen
-            # Simuliere LLM-Antworten (hier leer oder generisch)
-            model_initial = "Tool wird aufgerufen..."
-            tool_call_json = {"function": {"name": test_case.expected_tool_call, "arguments": test_case.expected_parameters}}
-            tool_response = execute_tool(test_case.expected_tool_call, test_case.expected_parameters)
-            model_final = "Antwort generiert nach Tool-Call."
-
+            # ========== ECHTE LLM-BENCHMARK DURCHFÜHREN ==========
+            # Das LLM generiert selbst den Tool-Call (keine Mock-Daten!)
+            benchmark_result = llm.benchmark_test_case(
+                test_case=test_case,
+                tools=tools,
+                execute_tool_fn=execute_tool,
+                provider="ollama",
+                round_number=1
+            )
+            benchmark_results.append(benchmark_result)
+            
+            # Ergebnisse des echten LLM-Calls
+            print(f"\n📋 LLM-Benchmark-Ergebnis:")
+            print(f"   Tool gewählt: {benchmark_result.actual_tool_call}")
+            print(f"   Parameter: {benchmark_result.actual_parameters}")
+            print(f"   Korrekt: {'✅' if benchmark_result.correct_tool_called else '❌'}")
+            print(f"   Parameter-Genauigkeit: {benchmark_result.parameter_accuracy:.1%}")
+            
+            # Prüfe ob LLM überhaupt einen Tool-Call gemacht hat
+            if not benchmark_result.actual_tool_call:
+                print(f"   ⚠️ Kein Tool-Call vom LLM generiert - überspringe Evaluierung")
+                continue
+            
+            # ========== MULTI-MODEL-EVALUIERUNG DER ECHTEN DATEN ==========
+            print(f"\n📊 Starte Multi-Model-Evaluierung...")
+            
+            # Tool-Call-JSON aus Benchmark-Ergebnis erstellen
+            tool_call_json = {
+                "function": {
+                    "name": benchmark_result.actual_tool_call,
+                    "arguments": benchmark_result.actual_parameters
+                }
+            }
+            
+            # Tool-Response aus dem Benchmark holen (wurde bereits ausgeführt)
+            # Da execute_tool deterministisch ist, können wir es erneut aufrufen
+            tool_response = execute_tool(
+                benchmark_result.actual_tool_call,
+                benchmark_result.actual_parameters
+            )
+            
             multi_result = multi_evaluator.evaluate_interaction_multi_model(
                 original_prompt=test_case.prompt,
-                model_initial=model_initial,
+                model_initial=benchmark_result.model_initial,
                 tool_call_json=tool_call_json,
                 tool_response=tool_response,
-                model_final=model_final,
+                model_final=benchmark_result.model_final,
                 expected_tool_call=test_case.expected_tool_call,
                 expected_parameters=test_case.expected_parameters
             )
 
             test_result = {
                 "test_case": test_case,
-                "multi_model_result": multi_result
+                "benchmark_result": benchmark_result,  # Echte LLM-Daten
+                "multi_model_result": multi_result     # Multi-Model-Bewertung
             }
             multi_model_results.append(test_result)
+            
+            # Kurze Zusammenfassung
+            successful_evals = [e for e in multi_result.model_evaluations if e.evaluation_error is None]
+            if successful_evals:
+                avg_score = sum(e.overall_score for e in successful_evals) / len(successful_evals)
+                print(f"   Durchschnittlicher Evaluierungs-Score: {avg_score:.1f}/100")
+            
         except Exception as e:
             print(f"   ❌ Fehler bei TestCase {test_case.name}: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    # 8. Multi-Model-Ergebnisse analysieren
+    print(f"\n{'='*80}")
+    print("ZUSAMMENFASSUNG: MULTI-MODEL EVALUIERUNG")
+    print(f"{'='*80}")
+    
+    # Benchmark-Statistiken
+    if benchmark_results:
+        successful_benchmarks = [r for r in benchmark_results if r.error is None and r.actual_tool_call]
+        print(f"\n🎯 LLM-BENCHMARK-STATISTIKEN:")
+        print(f"   Durchgeführt: {len(benchmark_results)} Tests")
+        print(f"   Erfolgreich: {len(successful_benchmarks)} Tests")
+        print(f"   Tool-Calls korrekt: {sum(1 for r in successful_benchmarks if r.correct_tool_called)}/{len(successful_benchmarks)}")
+        
+        if successful_benchmarks:
+            avg_param_accuracy = sum(r.parameter_accuracy for r in successful_benchmarks) / len(successful_benchmarks)
+            avg_response_time = sum(r.response_time for r in successful_benchmarks) / len(successful_benchmarks)
+            print(f"   Durchschn. Parameter-Genauigkeit: {avg_param_accuracy:.1%}")
+            print(f"   Durchschn. Response-Zeit: {avg_response_time:.2f}s")
     
     # 5. Multi-Model-Ergebnisse analysieren
     print(f"\n{'='*80}")
@@ -565,9 +701,15 @@ def demonstrate_multi_model_evaluator():
     return multi_model_results
 
 def demonstrate_advanced_evaluator_with_standard_testcases():
-    """Demonstriert Advanced-Evaluator mit den Standard-TestCases aus mcp_demo.py"""
+    """
+    Demonstriert Advanced-Evaluator mit Standard-TestCases und ECHTEN LLM-Calls
     
-    print("=== MCP Advanced-Evaluator mit Standard TestCases ===\n")
+    Diese Funktion zeigt den vollständigen Workflow:
+    1. MCPBenchmarkLLM macht echte Tool-Calls
+    2. MCPAdvancedEvaluator bewertet die Ergebnisse
+    """
+    
+    print("=== MCP Advanced-Evaluator mit Standard TestCases (ECHTE LLM-Calls) ===\n")
     
     # 1. Test-Cases definieren - identisch mit mcp_demo.py
     test_cases = [
@@ -824,9 +966,7 @@ def demonstrate_advanced_evaluator_with_standard_testcases():
     print("Evaluator: NUR ADVANCED (MCPAdvancedEvaluator)")
     print("="*80)
     
-    # MCPBenchmarkLLM direkt verwenden für reine Tool-Call-Tests
-    from mcp_benchmark_llm_old import MCPBenchmarkLLM
-    
+    # MCPBenchmarkLLM aus der neuen Datei verwenden
     llm = MCPBenchmarkLLM(**models[0]["config"])
     
     results = []
@@ -871,18 +1011,8 @@ def demonstrate_advanced_evaluator_with_standard_testcases():
                         expected_parameters=test_case.expected_parameters
                     )
                     
-                    # Advanced-Evaluierung zum Ergebnis hinzufügen
-                    from mcp_benchmark_llm_old import EvaluationResult
-                    benchmark_result.evaluation_result = EvaluationResult(
-                        tool_usage_correctness=advanced_evaluation.tool_usage_correctness,
-                        final_answer_correctness=advanced_evaluation.answer_correctness,
-                        final_answer_completeness=advanced_evaluation.answer_completeness,
-                        overall_score=advanced_evaluation.overall_score,
-                        short_explanation=advanced_evaluation.reasoning,
-                        evaluator_response_raw=advanced_evaluation.raw_evaluator_response,
-                        evaluation_error=advanced_evaluation.evaluation_error,
-                        evaluation_time=advanced_evaluation.evaluation_time
-                    )
+                    # Advanced-Evaluierung zum Ergebnis hinzufügen (direkt als MCPEvaluationResult)
+                    benchmark_result.evaluation_result = advanced_evaluation
                     
                     print(f"    ✓ Advanced-Score: {advanced_evaluation.overall_score:.1f}/100")
                     
@@ -894,7 +1024,6 @@ def demonstrate_advanced_evaluator_with_standard_testcases():
             except Exception as e:
                 print(f"    ❌ Test fehlgeschlagen: {e}")
                 # Erstelle Fallback-Ergebnis
-                from mcp_benchmark_llm_old import BenchmarkResult
                 fallback_result = BenchmarkResult(
                     test_case=test_case,
                     model=models[0]["config"]["model"],

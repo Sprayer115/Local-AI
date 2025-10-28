@@ -93,8 +93,8 @@ class: text-left
 - Prof. O. Dürr
 - Prof. M. Franz
 - Simon Driescher (MSI SE)
-- SE Benedikt Scheffel (MSI SE)
-- ITM Robert Breuer
+- Benedikt Scheffel (MSI SE)
+- Robert Breuer (MSI ITM)
 
 </v-click>
 
